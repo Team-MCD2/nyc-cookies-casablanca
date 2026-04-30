@@ -1,0 +1,267 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Trash2, Copy, X } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Empty } from "@/components/ui/misc";
+import { Modal } from "@/components/ui/modal";
+import { InputGroup } from "@/components/ui/input";
+import { ProStatusBadge } from "@/components/status-badge";
+import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
+import { toast } from "@/components/ui/toaster";
+import { deletePro, deleteInvitation } from "@/lib/actions";
+import { money, formatDate } from "@/lib/utils";
+import type { Pro, Invitation } from "@/lib/types";
+import { InviteProForm } from "./invite-form";
+
+interface Props {
+  pros: Pro[];
+  invitations: Invitation[];
+}
+
+export function ProsClient({ pros, invitations }: Props) {
+  const [query, setQuery] = useState("");
+  const [confirmDeletePro, setConfirmDeletePro] = useState<Pro | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return pros;
+    return pros.filter(
+      (p) =>
+        p.company.toLowerCase().includes(q) ||
+        p.contactName.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q),
+    );
+  }, [pros, query]);
+
+  return (
+    <>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sm:max-w-sm sm:flex-1">
+          <InputGroup
+            icon={<Search className="h-4 w-4" />}
+            placeholder="Rechercher société, contact, email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <InviteProForm />
+      </div>
+
+      {pros.length === 0 ? (
+        <Empty title="Aucun partenaire pro pour l'instant">
+          Cliquez sur <strong>Inviter un pro</strong> pour générer un lien d'inscription
+          à envoyer à votre prochain partenaire B2B (café, hôtel, pâtisserie…).
+        </Empty>
+      ) : filtered.length === 0 ? (
+        <Empty title="Aucun résultat">Aucun pro ne correspond à votre recherche.</Empty>
+      ) : (
+        <Card className="p-0">
+          <TableWrap className="rounded-none border-0">
+            <Table>
+              <Thead>
+                <Tr>
+                  <Th>Société</Th>
+                  <Th>Contact</Th>
+                  <Th className="text-right">Cmds</Th>
+                  <Th className="text-right">CA</Th>
+                  <Th className="text-right">Encours</Th>
+                  <Th>Délai</Th>
+                  <Th>Statut</Th>
+                  <Th className="text-right">Actions</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {filtered.map((p) => (
+                  <Tr key={p.id}>
+                    <Td>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={p.company} size="sm" />
+                        <div>
+                          <div className="font-semibold">{p.company}</div>
+                          <div className="text-[0.85rem] text-text-3">{p.email}</div>
+                        </div>
+                      </div>
+                    </Td>
+                    <Td className="text-[0.9rem]">
+                      <div>{p.contactName}</div>
+                      {p.phone && (
+                        <div className="text-[0.82rem] text-text-3">{p.phone}</div>
+                      )}
+                    </Td>
+                    <Td className="text-right tabular-nums">{p.ordersCount}</Td>
+                    <Td className="text-right tabular-nums">{money(p.totalSpent)}</Td>
+                    <Td className="text-right tabular-nums">
+                      <span className={p.outstanding > 0 ? "text-warning" : ""}>
+                        {money(p.outstanding)}
+                      </span>
+                    </Td>
+                    <Td>{p.paymentTerms}j</Td>
+                    <Td>
+                      <ProStatusBadge status={p.status} />
+                    </Td>
+                    <Td>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setConfirmDeletePro(p)}
+                          title="Supprimer ce pro"
+                          aria-label="Supprimer"
+                          className="hover:bg-danger-soft hover:text-danger"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </TableWrap>
+        </Card>
+      )}
+
+      {invitations.length > 0 && (
+        <Card className="mt-6">
+          <h3 className="mb-4 font-display text-[1.1rem] tracking-[0.04em]">
+            Invitations en attente ({invitations.length})
+          </h3>
+          <ul className="stack-sm">
+            {invitations.map((inv) => (
+              <InvitationRow key={inv.token} invitation={inv} />
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <DeleteProModal pro={confirmDeletePro} onClose={() => setConfirmDeletePro(null)} />
+    </>
+  );
+}
+
+function InvitationRow({ invitation }: { invitation: Invitation }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  const link =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/pro-invite?token=${invitation.token}`
+      : `/pro-invite?token=${invitation.token}`;
+
+  function copyLink() {
+    navigator.clipboard
+      .writeText(link)
+      .then(() => toast({ title: "Lien copié", type: "success" }))
+      .catch(() =>
+        toast({ title: "Impossible de copier", message: link, type: "warning" }),
+      );
+  }
+
+  function cancel() {
+    start(async () => {
+      try {
+        await deleteInvitation(invitation.token);
+        toast({ title: "Invitation annulée", message: invitation.company, type: "success" });
+        router.refresh();
+      } catch (err) {
+        toast({
+          title: "Erreur",
+          message: err instanceof Error ? err.message : "Échec.",
+          type: "danger",
+        });
+      }
+    });
+  }
+
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-border-strong bg-surface-2 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold">{invitation.company}</div>
+        <div className="text-[0.85rem] text-text-3">
+          {invitation.contactName} · {invitation.email} · créée le {formatDate(invitation.createdAt)}
+        </div>
+        <code className="mt-1 block break-all font-mono text-[0.72rem] text-accent">
+          {link}
+        </code>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button variant="ghost" size="sm" onClick={copyLink}>
+          <Copy className="h-3.5 w-3.5" /> Copier
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={cancel}
+          disabled={pending}
+          title="Annuler l'invitation"
+          aria-label="Annuler l'invitation"
+          className="hover:bg-danger-soft hover:text-danger"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </li>
+  );
+}
+
+function DeleteProModal({
+  pro,
+  onClose,
+}: {
+  pro: Pro | null;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  function onDelete() {
+    if (!pro) return;
+    start(async () => {
+      try {
+        await deletePro(pro.id);
+        toast({ title: "Pro supprimé", message: pro.company, type: "success" });
+        onClose();
+        router.refresh();
+      } catch (err) {
+        toast({
+          title: "Erreur",
+          message: err instanceof Error ? err.message : "Échec de la suppression.",
+          type: "danger",
+        });
+      }
+    });
+  }
+
+  return (
+    <Modal
+      open={!!pro}
+      onClose={onClose}
+      title="Supprimer le profil pro"
+      size="sm"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={pending}>
+            Annuler
+          </Button>
+          <Button variant="danger" onClick={onDelete} disabled={pending}>
+            {pending ? "Suppression…" : "Supprimer"}
+          </Button>
+        </>
+      }
+    >
+      <p className="text-text-2">
+        Confirmer la suppression de <strong className="text-text">{pro?.company}</strong> ?
+      </p>
+      <p className="mt-2 text-[0.88rem] text-text-3">
+        Cela supprime la <em>fiche société</em> côté Supabase. Ses commandes et factures
+        passées seront conservées (FK détachée). Le compte Clerk associé n'est pas
+        supprimé — utilisez la page <strong>Utilisateurs</strong> pour cela.
+      </p>
+    </Modal>
+  );
+}

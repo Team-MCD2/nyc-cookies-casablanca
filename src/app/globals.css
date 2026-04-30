@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================================
+   NYC COOKIES — Global tokens & base layer
+   ========================================================================= */
+@layer base {
+  :root {
+    --font-display: "Bebas Neue", "Anton", "Impact", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+    --topbar-h: 64px;
+    --sidebar-w: 264px;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-bg font-body text-[15px] leading-[1.55] text-text antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent text-white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-lg bg-border-strong;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted;
+  }
+
+  :focus-visible {
+    @apply rounded outline-2 outline-offset-2 outline-accent;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display font-normal uppercase tracking-[0.01em];
+    line-height: 1.05;
+  }
+  h1 { font-size: clamp(2.25rem, 5vw, 3.75rem); }
+  h2 { font-size: clamp(1.75rem, 3.5vw, 2.5rem); }
+  h3 { font-size: clamp(1.25rem, 2.4vw, 1.75rem); }
+  h4 { font-size: 1.15rem; letter-spacing: 0.04em; }
+}
+
+/* =========================================================================
+   Reusable composite classes (mirrors prototype's most-used patterns)
+   ========================================================================= */
+@layer components {
+  /* Layout helpers */
+  .stack    { @apply flex flex-col gap-4; }
+  .stack-sm { @apply flex flex-col gap-2; }
+  .stack-lg { @apply flex flex-col gap-6; }
+
+  .section    { @apply py-16; }
+  .section-sm { @apply py-10; }
+
+  /* Eyebrow (small uppercase intro tag) */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 font-display text-[0.82rem] uppercase tracking-[0.22em] text-accent;
+  }
+  .eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 28px;
+    height: 1px;
+    background: theme("colors.accent.DEFAULT");
+  }
+
+  /* Public header glass */
+  .public-header {
+    @apply sticky top-0 z-40 border-b border-border;
+    background: rgba(10, 10, 10, 0.78);
+    backdrop-filter: blur(14px);
+  }
+
+  /* App shell topbar glass */
+  .app-topbar {
+    @apply sticky top-0 z-30 border-b border-border;
+    height: var(--topbar-h);
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(12px);
+  }
+}
