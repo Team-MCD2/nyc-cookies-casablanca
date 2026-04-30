@@ -1,6 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isProtectedRoute = createRouteMatcher(["/admin(.*)", "/pro(.*)"]);
+// IMPORTANT: do NOT use "/pro(.*)" — that pattern also matches "/pro-invite"
+// (the public Clerk SignUp page used by invited pros). When that page is
+// gated, invited pros are bounced to /login before they even have an account
+// and Clerk replies "user not found". We split into the exact "/pro" route
+// plus the "/pro/<sub>" subtree so /pro-invite stays public. Same logic for
+// /admin in case future routes like /admin-something are ever added.
+const isProtectedRoute = createRouteMatcher([
+  "/admin",
+  "/admin/(.*)",
+  "/pro",
+  "/pro/(.*)",
+]);
 
 /**
  * Clerk middleware: gates /admin and /pro behind authentication only.
