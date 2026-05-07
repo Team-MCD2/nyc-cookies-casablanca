@@ -3,9 +3,10 @@ import Image from "next/image";
 import { ArrowRight, Instagram, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Eyebrow } from "@/components/ui/misc";
+import { PageHeader, Eyebrow, Container } from "@/components/ui/misc";
 import { ProductCard } from "@/components/product-card";
 import { listActiveProducts } from "@/lib/queries";
+import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export const revalidate = 60; // ISR: refresh once a minute
@@ -254,6 +255,87 @@ export default async function LandingPage() {
               @nyc_cookies_casa <Instagram className="ml-3 md:ml-4 h-5 w-5 md:h-6 md:w-6 group-hover:rotate-12 transition-transform" />
             </Button>
           </Link>
+        </div>
+      </section>
+
+      {/* Contact & Location Section */}
+      <section className="py-32 bg-surface-1 relative overflow-hidden" id="contact">
+        <div className="container">
+          <div className="text-center mb-20">
+            <Eyebrow>Retrouvez-nous</Eyebrow>
+            <h2 className="text-6xl md:text-8xl mt-4 italic">Le Laboratoire.</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
+            {/* Store Details Card */}
+            <Card className="glass-morphism border-none p-10 md:p-14 rounded-[2.5rem] stack-xl flex flex-col justify-between hover:bg-white/5 transition-colors duration-700">
+              <div className="stack-lg">
+                <div className="stack-sm">
+                  <h3 className="text-5xl font-display text-white italic">{SITE.name.toUpperCase()}</h3>
+                  <p className="text-accent text-xl font-display tracking-widest">{SITE.city}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="stack-sm">
+                    <div className="text-xs uppercase tracking-[0.2em] text-text-muted font-bold">Adresse</div>
+                    <p className="text-text-2 text-lg leading-snug">
+                      {SITE.address.street},<br />
+                      {SITE.address.complement},<br />
+                      {SITE.address.city}
+                    </p>
+                  </div>
+                  <div className="stack-sm">
+                    <div className="text-xs uppercase tracking-[0.2em] text-text-muted font-bold">Contact</div>
+                    <p className="text-text-2 text-lg">{SITE.phoneDisplay}</p>
+                    <p className="text-text-2 text-lg">{SITE.email}</p>
+                  </div>
+                </div>
+
+                <div className="stack-sm border-t border-white/5 pt-8">
+                  <div className="text-xs uppercase tracking-[0.2em] text-text-muted font-bold mb-4">Horaires</div>
+                  <div className="stack-xs">
+                    {SITE.openingHours.map((h: { days: string; hours: string }, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-lg text-text-2">
+                        <span>{h.days}</span>
+                        <span className="font-display text-white">{h.hours}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="stack-sm border-t border-white/5 pt-8">
+                  <div className="text-xs uppercase tracking-[0.2em] text-text-muted font-bold mb-4">Moyens de paiement</div>
+                  <div className="flex flex-wrap gap-2">
+                    {["Espèces", "Carte Bancaire", "WhatsApp Pay"].map((m) => (
+                      <span key={m} className="px-4 py-1.5 rounded-full border border-white/10 text-xs text-text-3 font-medium">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <Link href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${SITE.address.street}, ${SITE.address.city}`)}`} target="_blank" className="pt-10">
+                <Button size="lg" className="h-16 w-full text-xl shine-effect rounded-full uppercase tracking-widest">
+                  Itinéraire Google Maps
+                </Button>
+              </Link>
+            </Card>
+
+            {/* Map Card */}
+            <div className="relative rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl min-h-[500px]">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3323.8465611394334!2d-7.636603423455648!3d33.5831!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzPCsDM0JzU5LjEiTiA3wrAzOCcwMS44Ilc!5e0!3m2!1sfr!2sma!4v1715110000000!5m2!1sfr!2sma"
+                width="100%"
+                height="100%"
+                style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) brightness(0.8) contrast(1.2)' }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="absolute inset-0"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
