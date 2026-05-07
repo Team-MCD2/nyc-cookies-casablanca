@@ -31,7 +31,7 @@ export function PublicHeader({
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="public-header">
+    <header className="public-header sticky top-0 z-50 glass-morphism border-none">
       <div className="container flex items-center justify-between py-4">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-3">

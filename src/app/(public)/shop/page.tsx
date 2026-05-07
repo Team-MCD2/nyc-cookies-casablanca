@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { listActiveProducts } from "@/lib/queries";
 import { ShopClient } from "./shop-client";
 import type { ProductCategory } from "@/lib/types";
+
+export const metadata: Metadata = {
+  title: "Notre Carte · Boutique de Cookies Artisanaux",
+  description: "Découvrez notre large gamme de cookies NYC : Soho, Bronx, Central Park... Livraison rapide à Casablanca pour une pause gourmande inoubliable.",
+};
 
 export const revalidate = 60;
 

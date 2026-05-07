@@ -96,10 +96,10 @@ export default async function LandingPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex overflow-x-auto pb-12 gap-6 snap-x snap-mandatory hide-scrollbar md:grid md:grid-cols-2 lg:grid-cols-4 md:overflow-visible md:pb-0">
             {featured.map((p, i) => (
               <div key={p.id} className={cn(
-                "transition-all duration-1000",
+                "min-w-[280px] snap-center transition-all duration-1000",
                 i % 2 === 1 ? "md:mt-24" : ""
               )}>
                 <div className="relative group p-1 rounded-3xl bg-gradient-to-b from-white/10 to-transparent hover:from-accent/40 transition-all duration-500">
@@ -114,11 +114,11 @@ export default async function LandingPage() {
       </section>
 
       {/* Story Section — Cinematic Asymmetry */}
-      <section className="py-40 bg-surface-1 relative overflow-hidden">
+      <section className="py-24 md:py-40 bg-surface-1 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')]" />
         
         <div className="container relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-32 items-center">
             <div className="relative group">
               <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-white/5">
                 <Image
@@ -129,7 +129,7 @@ export default async function LandingPage() {
                 />
               </div>
               {/* Floating Decorative Card */}
-              <div className="absolute -bottom-16 -right-16 hidden xl:block w-72 p-10 glass-morphism rounded-3xl animate-float-slow border-accent/20">
+              <div className="absolute -bottom-8 -right-8 hidden xl:block w-72 p-10 glass-morphism rounded-3xl animate-float-slow border-accent/20">
                  <div className="text-5xl font-display text-accent mb-4">100%</div>
                  <h4 className="text-white text-xl mb-2">Artisanal & Frais</h4>
                  <p className="text-sm text-text-3 font-light leading-relaxed">Préparé chaque matin dans notre laboratoire à Casablanca avec les meilleurs ingrédients.</p>
@@ -139,14 +139,14 @@ export default async function LandingPage() {
             <div className="stack-xl">
               <div className="stack-md">
                 <Eyebrow>The Soul of NYC</Eyebrow>
-                <h2 className="text-6xl md:text-8xl">Plus qu'un cookie, une émotion.</h2>
+                <h2 className="text-5xl md:text-8xl">Plus qu'un cookie, une émotion.</h2>
               </div>
               <div className="stack-lg">
-                <p className="text-2xl text-text-2 font-light leading-relaxed">
+                <p className="text-xl md:text-2xl text-text-2 font-light leading-relaxed">
                   NYC Cookies est né d'une promesse : ramener l'authenticité vibrante de Manhattan au cœur de Casablanca. 
                 </p>
-                <p className="text-lg text-text-3 font-light leading-relaxed max-w-xl">
-                  Nos recettes sont le fruit d'un équilibre parfait. Un extérieur doré qui croustille sous la dent, libérant un cœur généreux, fondant et irrésistiblement gourmand. Pas de compromis, juste l'excellence.
+                <p className="text-base md:text-lg text-text-3 font-light leading-relaxed max-w-xl">
+                  Nos recettes sont le fruit d'un équilibre parfait. Un extérieur doré qui croustille sous la dent, libérant un cœur généreux, fondant et irrésistiblement gourmand.
                 </p>
               </div>
               <Link href="/pro" className="group">
@@ -161,34 +161,34 @@ export default async function LandingPage() {
       </section>
 
       {/* Social Proof — Sleek & Modern */}
-      <section className="py-40 bg-black">
+      <section className="py-24 md:py-40 bg-black">
         <div className="container">
-          <div className="flex flex-col items-center text-center mb-32">
+          <div className="flex flex-col items-center text-center mb-16 md:mb-32">
             <Eyebrow>Feedback</Eyebrow>
-            <h2 className="text-6xl md:text-8xl mt-6 italic">Adopté par la ville.</h2>
+            <h2 className="text-5xl md:text-8xl mt-6 italic">Adopté par la ville.</h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="flex overflow-x-auto pb-12 gap-6 snap-x snap-mandatory hide-scrollbar md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
             {[
               { name: "Sami B.", text: "Les meilleurs cookies de Casa, point final. Le Soho est une tuerie !", rating: 5, job: "Gourmet" },
               { name: "Lina T.", text: "Livraison rapide et cookies encore tièdes. Le packaging est magnifique.", rating: 5, job: "Artist" },
               { name: "Yassine M.", text: "Une texture incroyable, croustillant dehors et fondant dedans. Je recommande !", rating: 5, job: "Designer" },
             ].map((review, i) => (
-              <Card key={i} className="p-12 glass-morphism relative border-none hover:bg-white/5 transition-all duration-700 group">
-                <div className="absolute top-8 right-12 text-6xl text-accent/10 font-serif group-hover:text-accent/30 transition-colors">"</div>
-                <div className="flex gap-1 text-accent mb-10">
-                  {[...Array(5)].map((_, j) => <Star key={j} className="h-5 w-5 fill-current" />)}
+              <Card key={i} className="min-w-[300px] snap-center p-8 md:p-12 glass-morphism relative border-none hover:bg-white/5 transition-all duration-700 group">
+                <div className="absolute top-6 right-8 text-5xl text-accent/10 font-serif group-hover:text-accent/30 transition-colors">"</div>
+                <div className="flex gap-1 text-accent mb-6 md:mb-10">
+                  {[...Array(5)].map((_, j) => <Star key={j} className="h-4 w-4 md:h-5 md:w-5 fill-current" />)}
                 </div>
-                <p className="text-2xl italic text-text-2 mb-12 font-light leading-snug">
+                <p className="text-lg md:text-2xl italic text-text-2 mb-8 md:mb-12 font-light leading-snug">
                   {review.text}
                 </p>
-                <div className="flex items-center gap-5">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                <div className="flex items-center gap-4 md:gap-5">
+                  <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-lg">
                     {review.name[0]}
                   </div>
                   <div>
-                    <div className="font-bold text-base tracking-widest uppercase text-white">{review.name}</div>
-                    <div className="text-xs text-accent uppercase tracking-[0.2em] font-medium">{review.job}</div>
+                    <div className="font-bold text-sm md:text-base tracking-widest uppercase text-white">{review.name}</div>
+                    <div className="text-[10px] md:text-xs text-accent uppercase tracking-[0.2em] font-medium">{review.job}</div>
                   </div>
                 </div>
               </Card>
@@ -198,28 +198,28 @@ export default async function LandingPage() {
       </section>
 
       {/* FAQ — Minimalist & Bold */}
-      <section className="py-40 bg-surface-1 border-t border-white/5">
+      <section className="py-24 md:py-40 bg-surface-1 border-t border-white/5">
         <div className="container max-w-5xl">
-          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-24">
-            <div className="stack-md">
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12 md:gap-24">
+            <div className="stack-md text-center lg:text-left">
               <Eyebrow>FAQ</Eyebrow>
-              <h2 className="text-6xl italic">Des Questions ?</h2>
+              <h2 className="text-5xl md:text-6xl italic">Des Questions ?</h2>
               <p className="text-text-3">On a les réponses.</p>
             </div>
             
-            <div className="grid gap-6">
+            <div className="grid gap-4 md:gap-6">
               {[
                 { q: "Livrez-vous partout à Casablanca ?", a: "Oui, nous livrons dans tous les quartiers de Casablanca du lundi au dimanche." },
                 { q: "Comment conserver mes cookies ?", a: "Ils se conservent parfaitement 3-4 jours dans une boîte hermétique. Vous pouvez les passer 10-15 secondes au micro-ondes pour retrouver le fondant du premier jour !" },
                 { q: "Quels sont les délais de livraison ?", a: "Toute commande passée avant 14h est livrée le jour même. Les délais varient entre 45 et 90 minutes selon votre zone." },
                 { q: "Faites-vous des événements ?", a: "Absolument ! Mariages, Anniversaires, Corporate. Contactez-nous sur Instagram pour une offre sur mesure." },
               ].map((item, i) => (
-                <div key={i} className="group p-10 rounded-3xl bg-black border border-white/5 hover:border-accent/40 transition-all duration-700">
-                  <h4 className="text-3xl font-display mb-6 flex items-center gap-6 group-hover:text-accent transition-colors">
-                    <span className="text-accent/30 text-sm font-body font-bold tracking-tighter">0{i+1}</span>
+                <div key={i} className="group p-6 md:p-10 rounded-2xl bg-black border border-white/5 hover:border-accent/40 transition-all duration-700">
+                  <h4 className="text-xl md:text-3xl font-display mb-3 md:mb-6 flex items-center gap-4 md:gap-6 group-hover:text-accent transition-colors">
+                    <span className="text-accent/30 text-xs md:text-sm font-body font-bold tracking-tighter">0{i+1}</span>
                     {item.q}
                   </h4>
-                  <p className="text-text-3 pl-14 text-xl font-light leading-relaxed">{item.a}</p>
+                  <p className="text-text-3 pl-8 md:pl-14 text-base md:text-xl font-light leading-relaxed">{item.a}</p>
                 </div>
               ))}
             </div>

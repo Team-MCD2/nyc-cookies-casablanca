@@ -22,32 +22,45 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: `${SITE.fullName} — Best cookies in town`,
+    default: `${SITE.fullName} — Meilleurs cookies à Casablanca`,
     template: `%s — ${SITE.fullName}`,
   },
   description: SITE.description,
   keywords: [
     "cookies Casablanca",
     "NYC cookies",
-    "cookies new-yorkais",
-    "boulangerie Casablanca",
-    "Maroc",
-    "livraison cookies",
+    "cookies New York Casablanca",
+    "meilleur cookie Casablanca",
+    "livraison cookies Casablanca",
+    "pâtisserie Casablanca",
+    "cookies artisanaux",
+    "boutique cookies Maroc",
   ],
   openGraph: {
     type: "website",
     locale: SITE.locale,
     url: SITE.url,
     siteName: SITE.fullName,
-    title: SITE.fullName,
+    title: `${SITE.fullName} — L'Original NYC Cookie`,
     description: SITE.description,
-    images: [{ url: "/nyclogo.png", width: 512, height: 512, alt: SITE.fullName }],
+    images: [{ url: "/images/hero.png", width: 1200, height: 630, alt: SITE.fullName }],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE.fullName,
     description: SITE.description,
-    images: ["/nyclogo.png"],
+    images: ["/images/hero.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   icons: {
     icon: "/nyclogo.png",
@@ -59,6 +72,46 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Bakery",
+  "name": SITE.fullName,
+  "image": `${SITE.url}/images/hero.png`,
+  "@id": SITE.url,
+  "url": SITE.url,
+  "telephone": SITE.phone,
+  "priceRange": "$$",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": SITE.address.street,
+    "addressLocality": SITE.address.city,
+    "addressCountry": "MA"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 33.5731, // Casablanca general
+    "longitude": -7.5898
+  },
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      "opens": "10:00",
+      "closes": "22:00"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": "Sunday",
+      "opens": "14:00",
+      "closes": "22:00"
+    }
+  ],
+  "sameAs": [
+    SITE.social.instagram,
+    SITE.social.facebook
+  ]
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -98,6 +151,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       }}
     >
       <html lang={SITE.lang} className={`${bebas.variable} ${inter.variable}`}>
+        <head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        </head>
         <body>
           <a
             href="#main"
