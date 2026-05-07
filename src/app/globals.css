@@ -56,13 +56,117 @@
 }
 
 /* =========================================================================
+   UX/UI Wowie Effects — Adding depth and life
+   ========================================================================= */
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+@keyframes float-slow {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(-3deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+}
+
+@keyframes particle-float {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.3; }
+  80% { opacity: 0.3; }
+  100% { transform: translate(100px, -100vh) rotate(360deg); opacity: 0; }
+}
+
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+
+.particle {
+  position: absolute;
+  pointer-events: none;
+  background: var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: particle-float 15s linear infinite;
+}
+
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+.shine-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: skewX(-25deg);
+  animation: shine 4s infinite;
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.tilt-card {
+  transition: transform 0.3s ease-out;
+  transform-style: preserve-3d;
+}
+.tilt-card:hover {
+  transform: rotateX(2deg) rotateY(2deg);
+}
+
+.section-divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(to right, transparent, var(--border-strong), transparent);
+}
+
+.text-reveal {
+  background: linear-gradient(to right, #fff 0%, #fff 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 100%);
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background-position 0.8s ease-out;
+}
+.text-reveal:hover {
+  background-position: 0 0;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, #fff 0%, var(--accent, #d54a2a) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at center, rgba(213, 74, 42, 0.15) 0%, transparent 70%);
+}
+
+/* =========================================================================
    Reusable composite classes (mirrors prototype's most-used patterns)
    ========================================================================= */
 @layer components {
   /* Layout helpers */
   .stack    { @apply flex flex-col gap-4; }
   .stack-sm { @apply flex flex-col gap-2; }
-  .stack-lg { @apply flex flex-col gap-6; }
+  .stack-md { @apply flex flex-col gap-6; }
+  .stack-lg { @apply flex flex-col gap-8; }
+  .stack-xl { @apply flex flex-col gap-12; }
 
   .section    { @apply py-16; }
   .section-sm { @apply py-10; }
@@ -81,7 +185,7 @@
 
   /* Public header glass */
   .public-header {
-    @apply sticky top-0 z-40 border-b border-border;
+    @apply sticky top-0 z-50 border-b border-border;
     background: rgba(10, 10, 10, 0.78);
     backdrop-filter: blur(14px);
   }

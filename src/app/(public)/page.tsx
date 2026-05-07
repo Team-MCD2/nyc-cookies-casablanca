@@ -17,6 +17,24 @@ export default async function LandingPage() {
 
   return (
     <div className="flex flex-col bg-black overflow-x-hidden">
+      {/* Background Particles Layer */}
+      <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
+        {[...Array(12)].map((_, i) => (
+          <div 
+            key={i} 
+            className="particle" 
+            style={{ 
+              left: `${Math.random() * 100}%`, 
+              top: `${Math.random() * 100 + 100}%`,
+              width: `${Math.random() * 6 + 2}px`,
+              height: `${Math.random() * 6 + 2}px`,
+              animationDelay: `${Math.random() * 15}s`,
+              animationDuration: `${Math.random() * 10 + 10}s`
+            }} 
+          />
+        ))}
+      </div>
+
       {/* Cinematic Hero Section */}
       <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden py-20">
         {/* Background Effects */}
@@ -38,7 +56,7 @@ export default async function LandingPage() {
               <span className="h-2 w-2 rounded-full bg-accent" />
               L'Original de New York à Casablanca
             </div>
-            <h1 className="text-7xl md:text-8xl lg:text-[10rem] leading-[0.85] text-white font-display uppercase italic perspective-1000">
+            <h1 className="text-7xl md:text-8xl lg:text-[10rem] leading-[0.85] text-white font-display uppercase italic perspective-1000 text-reveal cursor-default">
               <span className="block animate-in fade-in slide-in-from-left duration-700">The</span>
               <span className="block text-accent text-glow animate-in fade-in slide-in-from-left duration-1000 delay-200">Ultimate</span>
               <span className="block text-gradient-accent animate-in fade-in slide-in-from-left duration-1000 delay-500">Cookie.</span>
@@ -48,12 +66,12 @@ export default async function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-6 justify-center lg:justify-start pt-6 opacity-0 animate-in fade-in slide-in-from-bottom duration-1000 delay-1000 fill-mode-forwards">
               <Link href="/shop">
-                <Button size="lg" className="h-16 px-12 text-xl shine-effect rounded-full">
-                  Commander
+                <Button size="lg" className="h-16 px-12 text-xl shine-effect rounded-full group">
+                  Commander <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                 </Button>
               </Link>
               <Link href="/pro">
-                <Button variant="outline" size="lg" className="h-16 px-12 text-xl rounded-full border-white/20 hover:border-accent">
+                <Button variant="outline" size="lg" className="h-16 px-12 text-xl rounded-full border-white/20 hover:border-accent hover:bg-accent/5 transition-all">
                   Espace Pro
                 </Button>
               </Link>
@@ -61,12 +79,12 @@ export default async function LandingPage() {
           </div>
 
           <div className="relative hidden lg:flex justify-center perspective-1000">
-            <div className="relative w-[550px] h-[550px] animate-float preserve-3d">
+            <div className="relative w-[550px] h-[550px] animate-float preserve-3d group">
                <Image
                  src="/images/cookies/soho.png"
                  alt="Soho Cookie"
                  fill
-                 className="object-contain drop-shadow-[0_50px_50px_rgba(213,74,42,0.4)]"
+                 className="object-contain drop-shadow-[0_50px_50px_rgba(213,74,42,0.4)] transition-transform duration-700 group-hover:scale-110"
                />
                {/* Floating decorative elements */}
                <div className="absolute -top-10 -left-10 w-32 h-32 bg-accent/20 rounded-full blur-[80px] animate-pulse" />
@@ -77,10 +95,12 @@ export default async function LandingPage() {
         
         {/* Scroll Indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 animate-bounce">
-           <span className="text-[10px] uppercase tracking-widest font-bold">Scroll</span>
+           <span className="text-[10px] uppercase tracking-widest font-bold text-accent">Scroll</span>
            <div className="w-[1px] h-12 bg-gradient-to-b from-accent to-transparent" />
         </div>
       </section>
+
+      <div className="section-divider" />
 
       {/* Featured Products — Dynamic Staggered Grid */}
       <section className="py-40 relative">
@@ -88,7 +108,7 @@ export default async function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
             <div className="stack-sm max-w-2xl">
               <Eyebrow>Nos Incontournables</Eyebrow>
-              <h2 className="text-6xl md:text-8xl mt-4">La Collection <span className="italic text-accent">Signature</span></h2>
+              <h2 className="text-6xl md:text-8xl mt-4 text-reveal cursor-default">La Collection <span className="italic text-accent">Signature</span></h2>
             </div>
             <Link href="/shop">
               <Button variant="ghost" className="text-accent hover:text-accent-hover gap-3 text-xl group">
@@ -103,8 +123,8 @@ export default async function LandingPage() {
                 "min-w-[280px] snap-center transition-all duration-1000",
                 i % 2 === 1 ? "md:mt-24" : ""
               )}>
-                <div className="relative group p-1 rounded-3xl bg-gradient-to-b from-white/10 to-transparent hover:from-accent/40 transition-all duration-500">
-                  <Card className="glass-morphism border-none overflow-hidden rounded-[calc(1.5rem-4px)]">
+                <div className="relative group p-1 rounded-3xl bg-gradient-to-b from-white/10 to-transparent hover:from-accent/40 transition-all duration-500 tilt-card">
+                  <Card className="glass-morphism border-none overflow-hidden rounded-[calc(1.5rem-4px)] shadow-elev-lg group-hover:shadow-accent/20">
                     <ProductCard product={p} />
                   </Card>
                 </div>
@@ -114,14 +134,16 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      <div className="section-divider" />
+
       {/* Story Section — Cinematic Asymmetry */}
       <section className="py-24 md:py-40 bg-surface-1 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')]" />
         
         <div className="container relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-32 items-center">
-            <div className="relative group">
-              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-white/5">
+            <div className="relative group perspective-1000">
+              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-white/5 transition-transform duration-700 group-hover:rotate-y-6">
                 <Image
                   src="/images/hero.png"
                   alt="Crafting Joy"
@@ -130,7 +152,7 @@ export default async function LandingPage() {
                 />
               </div>
               {/* Floating Decorative Card */}
-              <div className="absolute -bottom-8 -right-8 hidden xl:block w-72 p-10 glass-morphism rounded-3xl animate-float-slow border-accent/20">
+              <div className="absolute -bottom-8 -right-8 hidden xl:block w-72 p-10 glass-morphism rounded-3xl animate-float-slow border-accent/20 tilt-card shadow-2xl">
                  <div className="text-5xl font-display text-accent mb-4">100%</div>
                  <h4 className="text-white text-xl mb-2">Artisanal & Frais</h4>
                  <p className="text-sm text-text-3 font-light leading-relaxed">Préparé chaque matin dans notre laboratoire à Casablanca avec les meilleurs ingrédients.</p>
@@ -140,7 +162,7 @@ export default async function LandingPage() {
             <div className="stack-xl">
               <div className="stack-md">
                 <Eyebrow>The Soul of NYC</Eyebrow>
-                <h2 className="text-5xl md:text-8xl">Plus qu'un cookie, une émotion.</h2>
+                <h2 className="text-5xl md:text-8xl text-reveal cursor-default">Plus qu'un cookie, une émotion.</h2>
               </div>
               <div className="stack-lg">
                 <p className="text-xl md:text-2xl text-text-2 font-light leading-relaxed">
@@ -161,12 +183,14 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      <div className="section-divider" />
+
       {/* Social Proof — Sleek & Modern */}
       <section className="py-24 md:py-40 bg-black">
         <div className="container">
           <div className="flex flex-col items-center text-center mb-16 md:mb-32">
             <Eyebrow>Feedback</Eyebrow>
-            <h2 className="text-5xl md:text-8xl mt-6 italic">Adopté par la ville.</h2>
+            <h2 className="text-5xl md:text-8xl mt-6 italic text-reveal cursor-default">Adopté par la ville.</h2>
           </div>
           
           <div className="flex overflow-x-auto pb-12 gap-6 snap-x snap-mandatory hide-scrollbar md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
@@ -175,7 +199,7 @@ export default async function LandingPage() {
               { name: "Lina T.", text: "Livraison rapide et cookies encore tièdes. Le packaging est magnifique.", rating: 5, job: "Artist" },
               { name: "Yassine M.", text: "Une texture incroyable, croustillant dehors et fondant dedans. Je recommande !", rating: 5, job: "Designer" },
             ].map((review, i) => (
-              <Card key={i} className="min-w-[300px] snap-center p-8 md:p-12 glass-morphism relative border-none hover:bg-white/5 transition-all duration-700 group">
+              <Card key={i} className="min-w-[300px] snap-center p-8 md:p-12 glass-morphism relative border-none hover:bg-white/5 transition-all duration-700 group tilt-card">
                 <div className="absolute top-6 right-8 text-5xl text-accent/10 font-serif group-hover:text-accent/30 transition-colors">"</div>
                 <div className="flex gap-1 text-accent mb-6 md:mb-10">
                   {[...Array(5)].map((_, j) => <Star key={j} className="h-4 w-4 md:h-5 md:w-5 fill-current" />)}
@@ -198,13 +222,15 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      <div className="section-divider" />
+
       {/* FAQ — Minimalist & Bold */}
       <section className="py-24 md:py-40 bg-surface-1 border-t border-white/5">
         <div className="container max-w-5xl">
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12 md:gap-24">
             <div className="stack-md text-center lg:text-left">
               <Eyebrow>FAQ</Eyebrow>
-              <h2 className="text-5xl md:text-6xl italic">Des Questions ?</h2>
+              <h2 className="text-5xl md:text-6xl italic text-reveal cursor-default">Des Questions ?</h2>
               <p className="text-text-3">On a les réponses.</p>
             </div>
             
@@ -215,7 +241,7 @@ export default async function LandingPage() {
                 { q: "Quels sont les délais de livraison ?", a: "Toute commande passée avant 14h est livrée le jour même. Les délais varient entre 45 et 90 minutes selon votre zone." },
                 { q: "Faites-vous des événements ?", a: "Absolument ! Mariages, Anniversaires, Corporate. Contactez-nous sur Instagram pour une offre sur mesure." },
               ].map((item, i) => (
-                <div key={i} className="group p-6 md:p-10 rounded-2xl bg-black border border-white/5 hover:border-accent/40 transition-all duration-700">
+                <div key={i} className="group p-6 md:p-10 rounded-2xl bg-black border border-white/5 hover:border-accent/40 transition-all duration-700 tilt-card">
                   <h4 className="text-xl md:text-3xl font-display mb-3 md:mb-6 flex items-center gap-4 md:gap-6 group-hover:text-accent transition-colors">
                     <span className="text-accent/30 text-xs md:text-sm font-body font-bold tracking-tighter">0{i+1}</span>
                     {item.q}
@@ -228,47 +254,19 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Instagram Vibe — Full Width Experience */}
-      <section className="py-40 bg-black relative">
-        <div className="container text-center stack-xl items-center">
-          <div className="stack-sm">
-            <Eyebrow>Join the Community</Eyebrow>
-            <h2 className="text-7xl md:text-9xl italic">The Vibe.</h2>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
-            {[1, 2, 3, 4].map((n) => (
-              <div key={n} className="aspect-[3/4] relative rounded-3xl overflow-hidden group border border-white/5">
-                <Image
-                  src={`/images/cookies/${n === 1 ? 'soho' : n === 2 ? 'bronx' : n === 3 ? 'pink-velvet' : 'central-park'}.png`}
-                  alt="NYC Experience"
-                  fill
-                  className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000"
-                />
-                <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            ))}
-          </div>
-          
-          <Link href="https://www.instagram.com/nyc_cookies_casa" target="_blank" className="w-full max-w-xs mx-auto">
-            <Button size="lg" variant="outline" className="h-14 md:h-20 w-full px-6 md:px-16 text-lg md:text-2xl rounded-full border-accent text-accent hover:bg-accent hover:text-white transition-all group">
-              @nyc_cookies_casa <Instagram className="ml-3 md:ml-4 h-5 w-5 md:h-6 md:w-6 group-hover:rotate-12 transition-transform" />
-            </Button>
-          </Link>
-        </div>
-      </section>
+      <div className="section-divider" />
 
       {/* Contact & Location Section */}
-      <section className="py-32 bg-surface-1 relative overflow-hidden" id="contact">
+      <section className="py-32 bg-black relative overflow-hidden" id="contact">
         <div className="container">
           <div className="text-center mb-20">
             <Eyebrow>Retrouvez-nous</Eyebrow>
-            <h2 className="text-6xl md:text-8xl mt-4 italic">Le Laboratoire.</h2>
+            <h2 className="text-6xl md:text-8xl mt-4 italic text-reveal cursor-default">Le Laboratoire.</h2>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
             {/* Store Details Card */}
-            <Card className="glass-morphism border-none p-10 md:p-14 rounded-[2.5rem] stack-xl flex flex-col justify-between hover:bg-white/5 transition-colors duration-700">
+            <Card className="glass-morphism border-none p-10 md:p-14 rounded-[2.5rem] stack-xl flex flex-col justify-between hover:bg-white/5 transition-colors duration-700 tilt-card shadow-2xl">
               <div className="stack-lg">
                 <div className="stack-sm">
                   <h3 className="text-5xl font-display text-white italic">{SITE.name.toUpperCase()}</h3>
@@ -307,7 +305,7 @@ export default async function LandingPage() {
                   <div className="text-xs uppercase tracking-[0.2em] text-text-muted font-bold mb-4">Moyens de paiement</div>
                   <div className="flex flex-wrap gap-2">
                     {["Espèces", "Carte Bancaire"].map((m) => (
-                      <span key={m} className="px-4 py-1.5 rounded-full border border-white/10 text-xs text-text-3 font-medium">
+                      <span key={m} className="px-4 py-1.5 rounded-full border border-white/10 text-xs text-text-3 font-medium hover:border-accent hover:text-accent transition-colors">
                         {m}
                       </span>
                     ))}
@@ -316,14 +314,14 @@ export default async function LandingPage() {
               </div>
 
               <Link href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${SITE.address.street}, ${SITE.address.city}`)}`} target="_blank" className="pt-10">
-                <Button size="lg" className="h-16 w-full text-xl shine-effect rounded-full uppercase tracking-widest">
+                <Button size="lg" className="h-16 w-full text-xl shine-effect rounded-full uppercase tracking-widest shadow-lg hover:shadow-accent/20">
                   Itinéraire Google Maps
                 </Button>
               </Link>
             </Card>
 
             {/* Map Card */}
-            <div className="relative rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl min-h-[500px]">
+            <div className="relative rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl min-h-[500px] tilt-card group">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3323.8465611394334!2d-7.636603423455648!3d33.5831!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzPCsDM0JzU5LjEiTiA3wrAzOCcwMS44Ilc!5e0!3m2!1sfr!2sma!4v1715110000000!5m2!1sfr!2sma"
                 width="100%"
@@ -332,10 +330,43 @@ export default async function LandingPage() {
                 allowFullScreen={true}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                className="absolute inset-0"
+                className="absolute inset-0 grayscale group-hover:grayscale-0 transition-all duration-700"
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      <div className="section-divider" />
+
+      {/* Instagram Vibe — Full Width Experience */}
+      <section className="py-40 bg-black relative">
+        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+        <div className="container relative z-10 text-center stack-xl items-center">
+          <div className="stack-sm">
+            <Eyebrow>Join the Community</Eyebrow>
+            <h2 className="text-7xl md:text-9xl italic text-reveal cursor-default">The Vibe.</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="aspect-[3/4] relative rounded-3xl overflow-hidden group border border-white/5 tilt-card shadow-2xl">
+                <Image
+                  src={`/images/cookies/${n === 1 ? 'soho' : n === 2 ? 'bronx' : n === 3 ? 'pink-velvet' : 'central-park'}.png`}
+                  alt="NYC Experience"
+                  fill
+                  className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000"
+                />
+                <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ))}
+          </div>
+          
+          <Link href="https://www.instagram.com/nyc_cookies_casa" target="_blank" className="w-full max-w-xs mx-auto">
+            <Button size="lg" variant="outline" className="h-14 md:h-20 w-full px-6 md:px-16 text-lg md:text-2xl rounded-full border-accent text-accent hover:bg-accent hover:text-white transition-all group shadow-xl hover:shadow-accent/20">
+              @nyc_cookies_casa <Instagram className="ml-3 md:ml-4 h-5 w-5 md:h-6 md:w-6 group-hover:rotate-12 transition-transform" />
+            </Button>
+          </Link>
         </div>
       </section>
 
@@ -347,7 +378,7 @@ export default async function LandingPage() {
         <div className="container relative z-10 stack-xl items-center">
           <h2 className="text-6xl md:text-[12rem] leading-[0.8] tracking-tighter">FAITES-VOUS <br />PLAISIR.</h2>
           <Link href="/shop" className="w-full max-w-sm mx-auto">
-            <Button size="lg" variant="secondary" className="bg-white text-accent hover:bg-black hover:text-white h-16 md:h-24 w-full px-8 md:px-20 text-xl md:text-3xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500">
+            <Button size="lg" variant="secondary" className="bg-white text-accent hover:bg-black hover:text-white h-16 md:h-24 w-full px-8 md:px-20 text-xl md:text-3xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 hover:scale-105 active:scale-95">
               COMMANDER EN 2 CLICS
             </Button>
           </Link>
