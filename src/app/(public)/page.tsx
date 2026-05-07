@@ -249,23 +249,23 @@ export default async function LandingPage() {
             ))}
           </div>
           
-          <Link href="https://www.instagram.com/nyc_cookies_casa" target="_blank">
-            <Button size="lg" variant="outline" className="h-20 px-16 text-2xl rounded-full border-accent text-accent hover:bg-accent hover:text-white transition-all group">
-              @nyc_cookies_casa <Instagram className="ml-4 h-6 w-6 group-hover:rotate-12 transition-transform" />
+          <Link href="https://www.instagram.com/nyc_cookies_casa" target="_blank" className="w-full max-w-xs mx-auto">
+            <Button size="lg" variant="outline" className="h-14 md:h-20 w-full px-6 md:px-16 text-lg md:text-2xl rounded-full border-accent text-accent hover:bg-accent hover:text-white transition-all group">
+              @nyc_cookies_casa <Instagram className="ml-3 md:ml-4 h-5 w-5 md:h-6 md:w-6 group-hover:rotate-12 transition-transform" />
             </Button>
           </Link>
         </div>
       </section>
 
       {/* Final CTA — Pure Energy */}
-      <section className="py-52 bg-accent text-white text-center relative overflow-hidden">
+      <section className="py-32 md:py-52 bg-accent text-white text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-5 mix-blend-overlay">
            <div className="text-[15vw] font-display uppercase italic whitespace-nowrap rotate-[-5deg] select-none">NYC COOKIES NYC COOKIES NYC COOKIES</div>
         </div>
         <div className="container relative z-10 stack-xl items-center">
-          <h2 className="text-8xl md:text-[12rem] leading-[0.8] tracking-tighter">FAITES-VOUS <br />PLAISIR.</h2>
-          <Link href="/shop">
-            <Button size="lg" variant="secondary" className="bg-white text-accent hover:bg-black hover:text-white h-24 px-20 text-3xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500">
+          <h2 className="text-6xl md:text-[12rem] leading-[0.8] tracking-tighter">FAITES-VOUS <br />PLAISIR.</h2>
+          <Link href="/shop" className="w-full max-w-sm mx-auto">
+            <Button size="lg" variant="secondary" className="bg-white text-accent hover:bg-black hover:text-white h-16 md:h-24 w-full px-8 md:px-20 text-xl md:text-3xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500">
               COMMANDER EN 2 CLICS
             </Button>
           </Link>
