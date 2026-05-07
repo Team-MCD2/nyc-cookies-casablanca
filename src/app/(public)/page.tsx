@@ -306,7 +306,7 @@ export default async function LandingPage() {
                 <div className="stack-sm border-t border-white/5 pt-8">
                   <div className="text-xs uppercase tracking-[0.2em] text-text-muted font-bold mb-4">Moyens de paiement</div>
                   <div className="flex flex-wrap gap-2">
-                    {["Espèces", "Carte Bancaire", "WhatsApp Pay"].map((m) => (
+                    {["Espèces", "Carte Bancaire"].map((m) => (
                       <span key={m} className="px-4 py-1.5 rounded-full border border-white/10 text-xs text-text-3 font-medium">
                         {m}
                       </span>
