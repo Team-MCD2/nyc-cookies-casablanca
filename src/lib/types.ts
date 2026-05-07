@@ -19,6 +19,7 @@ export interface Product {
   category: ProductCategory;
   stock: number;
   active: boolean;
+  imageUrl?: string | null;
 }
 
 export interface Customer {

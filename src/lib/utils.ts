@@ -46,3 +46,32 @@ export function slugify(s: string) {
 export function uid(prefix = "id") {
   return prefix + "_" + Math.random().toString(36).slice(2, 9);
 }
+
+/** Resolve product image URL based on name/category. */
+export function getProductImage(p: { name: string; category?: string; imageUrl?: string | null }) {
+  if (p.imageUrl) return p.imageUrl;
+  const n = (p.name ?? "").toLowerCase();
+  const c = (p.category ?? "").toLowerCase();
+  
+  // Static high-quality local images first
+  if (n.includes("soho")) return "/images/cookies/soho.png";
+  if (n.includes("pink") || n.includes("velvet")) return "/images/cookies/pink-velvet.png";
+  if (n.includes("bronx")) return "/images/cookies/bronx.png";
+  if (n.includes("central park")) return "/images/cookies/central-park.png";
+  if (n.includes("times square")) return "/images/cookies/times-square.png";
+
+  // Switch to reliable local images due to Pollinations AI rate limits (429)
+  if (n.includes("little italy")) return "/images/cookies/soho.png";
+  if (n.includes("madison square")) return "/images/cookies/central-park.png";
+  if (n.includes("rikers island")) return "/images/cookies/bronx.png";
+  if (n.includes("full choco")) return "/images/cookies/bronx.png";
+  if (n.includes("wall street")) return "/images/cookies/central-park.png";
+  if (n.includes("harlem")) return "/images/cookies/pink-velvet.png";
+  
+  // Categories and generic fallbacks
+  if (c === "box") return "/images/hero.png";
+  if (c === "icecream") return "/images/cookies/pink-velvet.png";
+
+  // Default fallback to hero stack
+  return "/images/hero.png";
+}

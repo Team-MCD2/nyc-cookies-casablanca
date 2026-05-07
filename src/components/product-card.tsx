@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { money } from "@/lib/utils";
+import { money, getProductImage } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 /** Product monogram: BOX / ICE for non-cookie categories, first letter otherwise. */
@@ -11,9 +11,37 @@ function productMark(p: Product) {
   return { text: (p.name ?? "?").trim().charAt(0).toUpperCase(), isText: false };
 }
 
-/** Visual square thumbnail with the product monogram. */
+import Image from "next/image";
+
+/** Visual square thumbnail with the product monogram or image. */
 export function ProductThumb({ product }: { product: Product }) {
   const m = productMark(product);
+  const imageUrl = getProductImage(product);
+  
+  if (imageUrl) {
+    return (
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <Image
+          src={imageUrl}
+          alt={product.name}
+          fill
+          className="object-cover transition-transform duration-500 hover:scale-110"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+        {product.category === "box" && (
+          <span className="absolute left-3 top-3">
+            <Badge variant="accent">Box</Badge>
+          </span>
+        )}
+        {product.category === "icecream" && (
+          <span className="absolute left-3 top-3">
+            <Badge variant="info">Glace</Badge>
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-[radial-gradient(circle_at_30%_30%,#2a1a10,#0a0a0a_70%)]">
       <div

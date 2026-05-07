@@ -1,233 +1,276 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Cookie, Briefcase, Phone, Check, Mail, ArrowRight, CheckCircle, Truck, Leaf } from "lucide-react";
+import { ArrowRight, Instagram, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/misc";
 import { ProductCard } from "@/components/product-card";
-import { Avatar } from "@/components/ui/avatar";
 import { listActiveProducts } from "@/lib/queries";
-import { SITE } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 export const revalidate = 60; // ISR: refresh once a minute
 
 export default async function LandingPage() {
   const all = await listActiveProducts().catch(() => []);
-  const featured = all.slice(0, 8);
+  const featured = all.slice(0, 4);
 
   return (
-    <>
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border py-[clamp(4rem,10vw,8rem)]">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(60% 50% at 80% 20%, rgba(213,74,42,0.12), transparent 60%),
-              radial-gradient(50% 60% at 20% 80%, rgba(245,230,211,0.05), transparent 70%)
-            `,
-          }}
-        />
-        <div className="container relative z-10 grid items-center gap-10 md:grid-cols-[1.15fr_1fr] md:gap-16">
-          <div className="stack-lg">
-            <Eyebrow>Best cookies in town · Casablanca</Eyebrow>
-            <h1 className="font-display text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.95] tracking-[0.01em]">
-              Le goût du <span className="text-accent">bonheur</span>
-              <br />
-              cuit chaque matin.
+    <div className="flex flex-col bg-black overflow-x-hidden">
+      {/* Cinematic Hero Section */}
+      <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden py-20">
+        {/* Background Effects */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/images/hero.png"
+            alt="NYC Cookies"
+            fill
+            className="object-cover opacity-50 scale-105 blur-[1px]"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/20 to-black" />
+          <div className="absolute inset-0 hero-gradient" />
+        </div>
+
+        <div className="container relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="stack-lg text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-morphism text-accent text-xs font-bold uppercase tracking-widest animate-pulse border-accent/30">
+              <span className="h-2 w-2 rounded-full bg-accent" />
+              L'Original de New York à Casablanca
+            </div>
+            <h1 className="text-7xl md:text-8xl lg:text-[10rem] leading-[0.85] text-white font-display uppercase italic perspective-1000">
+              <span className="block animate-in fade-in slide-in-from-left duration-700">The</span>
+              <span className="block text-accent text-glow animate-in fade-in slide-in-from-left duration-1000 delay-200">Ultimate</span>
+              <span className="block text-gradient-accent animate-in fade-in slide-in-from-left duration-1000 delay-500">Cookie.</span>
             </h1>
-            <p className="max-w-[540px] text-[1.1rem] text-text-2">
-              Des cookies new-yorkais moelleux à l'intérieur, croustillants au bord. 12 recettes
-              d'auteur inspirées des quartiers de NYC, fraîchement préparées à Casablanca.
+            <p className="text-xl md:text-2xl text-text-2 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed opacity-0 animate-in fade-in slide-in-from-bottom duration-1000 delay-700 fill-mode-forwards">
+              Épais, fondants, et terriblement gourmands. Chaque fournée est une promesse de pur plaisir.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-6 justify-center lg:justify-start pt-6 opacity-0 animate-in fade-in slide-in-from-bottom duration-1000 delay-1000 fill-mode-forwards">
               <Link href="/shop">
-                <Button size="lg" variant="primary">
-                  <Cookie className="h-4 w-4" /> Voir la boutique
+                <Button size="lg" className="h-16 px-12 text-xl shine-effect rounded-full">
+                  Commander
                 </Button>
               </Link>
-              <Link href="#pro">
-                <Button size="lg" variant="outline">
-                  <Briefcase className="h-4 w-4" /> Espace pros
+              <Link href="/pro">
+                <Button variant="outline" size="lg" className="h-16 px-12 text-xl rounded-full border-white/20 hover:border-accent">
+                  Espace Pro
                 </Button>
               </Link>
             </div>
-            <div className="mt-2 flex flex-wrap gap-6 text-[0.92rem] text-text-3">
-              <span className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-accent" /> Cuits du jour
-              </span>
-              <span className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-accent" /> Livraison Casablanca
-              </span>
-              <span className="flex items-center gap-2">
-                <Leaf className="h-4 w-4 text-accent" /> Ingrédients premium
-              </span>
+          </div>
+
+          <div className="relative hidden lg:flex justify-center perspective-1000">
+            <div className="relative w-[550px] h-[550px] animate-float preserve-3d">
+               <Image
+                 src="/images/cookies/soho.png"
+                 alt="Soho Cookie"
+                 fill
+                 className="object-contain drop-shadow-[0_50px_50px_rgba(213,74,42,0.4)]"
+               />
+               {/* Floating decorative elements */}
+               <div className="absolute -top-10 -left-10 w-32 h-32 bg-accent/20 rounded-full blur-[80px] animate-pulse" />
+               <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-accent/10 rounded-full blur-[100px] animate-pulse delay-500" />
             </div>
           </div>
-          <div
-            className="mx-auto grid aspect-square w-full max-w-[460px] place-items-center rounded-full border border-border"
-            style={{ background: "radial-gradient(circle at 30% 30%, #1a1a1a, #050505 80%)" }}
-          >
-            <Image
-              src="/nyclogo.png"
-              alt="NYC Cookies logo"
-              width={460}
-              height={460}
-              className="h-[70%] w-[70%] object-contain"
-              priority
-            />
-          </div>
+        </div>
+        
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 animate-bounce">
+           <span className="text-[10px] uppercase tracking-widest font-bold">Scroll</span>
+           <div className="w-[1px] h-12 bg-gradient-to-b from-accent to-transparent" />
         </div>
       </section>
 
-      {/* Products preview */}
-      <section id="products" className="section">
+      {/* Featured Products — Dynamic Staggered Grid */}
+      <section className="py-40 relative">
         <div className="container">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <Eyebrow>La carte</Eyebrow>
-              <h2 className="mt-2">Nos cookies signature</h2>
-              <p className="mt-1 text-text-3">
-                Chaque cookie porte le nom d'un quartier de New York. Choisis ta vibe.
-              </p>
+          <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
+            <div className="stack-sm max-w-2xl">
+              <Eyebrow>Nos Incontournables</Eyebrow>
+              <h2 className="text-6xl md:text-8xl mt-4">La Collection <span className="italic text-accent">Signature</span></h2>
             </div>
             <Link href="/shop">
-              <Button variant="secondary">
-                Tout voir <ArrowRight className="h-4 w-4" />
+              <Button variant="ghost" className="text-accent hover:text-accent-hover gap-3 text-xl group">
+                Toute la carte <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {featured.map((p) => (
-              <ProductCard key={p.id} product={p} ctaLabel="Commander" />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {featured.map((p, i) => (
+              <div key={p.id} className={cn(
+                "transition-all duration-1000",
+                i % 2 === 1 ? "md:mt-24" : ""
+              )}>
+                <div className="relative group p-1 rounded-3xl bg-gradient-to-b from-white/10 to-transparent hover:from-accent/40 transition-all duration-500">
+                  <Card className="glass-morphism border-none overflow-hidden rounded-[calc(1.5rem-4px)]">
+                    <ProductCard product={p} />
+                  </Card>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Story */}
-      <section
-        id="story"
-        className="section"
-        style={{ background: "linear-gradient(180deg, transparent, rgba(213,74,42,0.04))" }}
-      >
-        <div className="container grid items-center gap-8 md:grid-cols-2">
-          <div className="stack">
-            <Eyebrow>Notre histoire</Eyebrow>
-            <h2>Casablanca rencontre Brooklyn.</h2>
-            <p>
-              NYC Cookies est né en 2022 d'une obsession : recréer à Casablanca le cookie
-              new-yorkais ultime — généreux, fondant au cœur, doré sur les bords. Chaque recette
-              s'inspire d'un quartier mythique : Soho, Bronx, Times Square, Madison Square…
-            </p>
-            <p>
-              On travaille avec des ingrédients soigneusement sélectionnés, on cuit en petites
-              quantités, et on livre le tout fraîchement préparé. La taste of happiness, version Casa.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/shop">
-                <Button>Découvrir la carte</Button>
+      {/* Story Section — Cinematic Asymmetry */}
+      <section className="py-40 bg-surface-1 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')]" />
+        
+        <div className="container relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
+            <div className="relative group">
+              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-white/5">
+                <Image
+                  src="/images/hero.png"
+                  alt="Crafting Joy"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-[3s] ease-out"
+                />
+              </div>
+              {/* Floating Decorative Card */}
+              <div className="absolute -bottom-16 -right-16 hidden xl:block w-72 p-10 glass-morphism rounded-3xl animate-float-slow border-accent/20">
+                 <div className="text-5xl font-display text-accent mb-4">100%</div>
+                 <h4 className="text-white text-xl mb-2">Artisanal & Frais</h4>
+                 <p className="text-sm text-text-3 font-light leading-relaxed">Préparé chaque matin dans notre laboratoire à Casablanca avec les meilleurs ingrédients.</p>
+              </div>
+            </div>
+
+            <div className="stack-xl">
+              <div className="stack-md">
+                <Eyebrow>The Soul of NYC</Eyebrow>
+                <h2 className="text-6xl md:text-8xl">Plus qu'un cookie, une émotion.</h2>
+              </div>
+              <div className="stack-lg">
+                <p className="text-2xl text-text-2 font-light leading-relaxed">
+                  NYC Cookies est né d'une promesse : ramener l'authenticité vibrante de Manhattan au cœur de Casablanca. 
+                </p>
+                <p className="text-lg text-text-3 font-light leading-relaxed max-w-xl">
+                  Nos recettes sont le fruit d'un équilibre parfait. Un extérieur doré qui croustille sous la dent, libérant un cœur généreux, fondant et irrésistiblement gourmand. Pas de compromis, juste l'excellence.
+                </p>
+              </div>
+              <Link href="/pro" className="group">
+                <div className="flex items-center gap-4 text-accent uppercase tracking-widest font-bold text-sm">
+                  <span>Découvrir notre espace pro</span>
+                  <div className="h-[1px] w-12 bg-accent group-hover:w-20 transition-all" />
+                </div>
               </Link>
-              <a href={`tel:${SITE.phone}`}>
-                <Button variant="ghost">
-                  <Phone className="h-4 w-4" /> {SITE.phoneDisplay}
-                </Button>
-              </a>
             </div>
           </div>
-          <Card
-            className="border-border-strong"
-            style={{ background: "radial-gradient(circle at 30% 30%, #1a1a1a, #050505 80%)" }}
-          >
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Recettes signature", value: "12" },
-                { label: "Année de création", value: "2022" },
-                { label: "Note moyenne", value: <>4.9<span className="text-[1.4rem] text-text-3">/5</span></> },
-                { label: "Livraisons / mois", value: "+1k" },
-              ].map((k, i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  <div className="text-[0.78rem] uppercase tracking-[0.16em] text-text-3">{k.label}</div>
-                  <div className="font-display text-[2.2rem] leading-none tracking-[0.02em]">{k.value}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
         </div>
       </section>
 
-      {/* Pro */}
-      <section id="pro" className="section">
+      {/* Social Proof — Sleek & Modern */}
+      <section className="py-40 bg-black">
         <div className="container">
-          <Card
-            className="border-accent"
-            style={{
-              background: "linear-gradient(135deg, rgba(213,74,42,0.12), transparent 60%)",
-            }}
-          >
-            <div className="grid items-center gap-8 md:grid-cols-2">
-              <div className="stack">
-                <Eyebrow>Espace pros</Eyebrow>
-                <h2>Cafés, hôtels, événements : on a votre dose.</h2>
-                <p>
-                  Vous êtes un café, un hôtel, un restaurant ou un organisateur d'événement ?
-                  Bénéficiez d'un compte pro NYC Cookies : commandes en gros, factures
-                  centralisées, paiement à 30/45 jours, et suivi en temps réel.
+          <div className="flex flex-col items-center text-center mb-32">
+            <Eyebrow>Feedback</Eyebrow>
+            <h2 className="text-6xl md:text-8xl mt-6 italic">Adopté par la ville.</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              { name: "Sami B.", text: "Les meilleurs cookies de Casa, point final. Le Soho est une tuerie !", rating: 5, job: "Gourmet" },
+              { name: "Lina T.", text: "Livraison rapide et cookies encore tièdes. Le packaging est magnifique.", rating: 5, job: "Artist" },
+              { name: "Yassine M.", text: "Une texture incroyable, croustillant dehors et fondant dedans. Je recommande !", rating: 5, job: "Designer" },
+            ].map((review, i) => (
+              <Card key={i} className="p-12 glass-morphism relative border-none hover:bg-white/5 transition-all duration-700 group">
+                <div className="absolute top-8 right-12 text-6xl text-accent/10 font-serif group-hover:text-accent/30 transition-colors">"</div>
+                <div className="flex gap-1 text-accent mb-10">
+                  {[...Array(5)].map((_, j) => <Star key={j} className="h-5 w-5 fill-current" />)}
+                </div>
+                <p className="text-2xl italic text-text-2 mb-12 font-light leading-snug">
+                  {review.text}
                 </p>
-                <ul className="stack-sm text-text-2">
-                  {[
-                    "Tarifs dégressifs sur volume",
-                    "Espace dédié : commandes, factures, paiements",
-                    "Délai de paiement adapté",
-                    "Livraison Casablanca, planifiée",
-                  ].map((it) => (
-                    <li key={it} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-accent" />
-                      {it}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex flex-wrap gap-3">
-                  <a href={`mailto:${SITE.email}?subject=Demande%20d'acc%C3%A8s%20pro`}>
-                    <Button>
-                      <Mail className="h-4 w-4" /> Demander un accès pro
-                    </Button>
-                  </a>
-                  <Link href="/login">
-                    <Button variant="outline">Déjà client ? Se connecter</Button>
-                  </Link>
-                </div>
-              </div>
-              <div className="stack">
-                <Card className="p-4">
-                  <div className="mb-3 flex items-center gap-3">
-                    <Avatar size="lg" name="Hamza Cherkaoui" />
-                    <div>
-                      <div className="font-semibold">Hamza C. — Café Bricoli</div>
-                      <div className="text-[0.85rem] text-text-3">Client pro depuis 2025</div>
-                    </div>
+                <div className="flex items-center gap-5">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    {review.name[0]}
                   </div>
-                  <p className="text-[0.95rem] text-text-3">
-                    « Je commande chaque semaine pour mon café. Le portail pro me fait gagner un
-                    temps fou : je vois toutes mes factures, je paie quand je veux dans mon délai. »
-                  </p>
-                </Card>
-                <div className="grid grid-cols-2 gap-3">
-                  <Card className="relative overflow-hidden p-4">
-                    <div className="text-[0.78rem] uppercase tracking-[0.16em] text-text-3">Pros actifs</div>
-                    <div className="mt-2 font-display text-[2.2rem] leading-none">+25</div>
-                  </Card>
-                  <Card className="relative overflow-hidden p-4">
-                    <div className="text-[0.78rem] uppercase tracking-[0.16em] text-text-3">Délai paiement</div>
-                    <div className="mt-2 font-display text-[2.2rem] leading-none">30j</div>
-                  </Card>
+                  <div>
+                    <div className="font-bold text-base tracking-widest uppercase text-white">{review.name}</div>
+                    <div className="text-xs text-accent uppercase tracking-[0.2em] font-medium">{review.job}</div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
-    </>
+
+      {/* FAQ — Minimalist & Bold */}
+      <section className="py-40 bg-surface-1 border-t border-white/5">
+        <div className="container max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-24">
+            <div className="stack-md">
+              <Eyebrow>FAQ</Eyebrow>
+              <h2 className="text-6xl italic">Des Questions ?</h2>
+              <p className="text-text-3">On a les réponses.</p>
+            </div>
+            
+            <div className="grid gap-6">
+              {[
+                { q: "Livrez-vous partout à Casablanca ?", a: "Oui, nous livrons dans tous les quartiers de Casablanca du lundi au dimanche." },
+                { q: "Comment conserver mes cookies ?", a: "Ils se conservent parfaitement 3-4 jours dans une boîte hermétique. Vous pouvez les passer 10-15 secondes au micro-ondes pour retrouver le fondant du premier jour !" },
+                { q: "Quels sont les délais de livraison ?", a: "Toute commande passée avant 14h est livrée le jour même. Les délais varient entre 45 et 90 minutes selon votre zone." },
+                { q: "Faites-vous des événements ?", a: "Absolument ! Mariages, Anniversaires, Corporate. Contactez-nous sur Instagram pour une offre sur mesure." },
+              ].map((item, i) => (
+                <div key={i} className="group p-10 rounded-3xl bg-black border border-white/5 hover:border-accent/40 transition-all duration-700">
+                  <h4 className="text-3xl font-display mb-6 flex items-center gap-6 group-hover:text-accent transition-colors">
+                    <span className="text-accent/30 text-sm font-body font-bold tracking-tighter">0{i+1}</span>
+                    {item.q}
+                  </h4>
+                  <p className="text-text-3 pl-14 text-xl font-light leading-relaxed">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Instagram Vibe — Full Width Experience */}
+      <section className="py-40 bg-black relative">
+        <div className="container text-center stack-xl items-center">
+          <div className="stack-sm">
+            <Eyebrow>Join the Community</Eyebrow>
+            <h2 className="text-7xl md:text-9xl italic">The Vibe.</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="aspect-[3/4] relative rounded-3xl overflow-hidden group border border-white/5">
+                <Image
+                  src={`/images/cookies/${n === 1 ? 'soho' : n === 2 ? 'bronx' : n === 3 ? 'pink-velvet' : 'central-park'}.png`}
+                  alt="NYC Experience"
+                  fill
+                  className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000"
+                />
+                <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ))}
+          </div>
+          
+          <Link href="https://www.instagram.com/nyc_cookies_casa" target="_blank">
+            <Button size="lg" variant="outline" className="h-20 px-16 text-2xl rounded-full border-accent text-accent hover:bg-accent hover:text-white transition-all group">
+              @nyc_cookies_casa <Instagram className="ml-4 h-6 w-6 group-hover:rotate-12 transition-transform" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Final CTA — Pure Energy */}
+      <section className="py-52 bg-accent text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5 mix-blend-overlay">
+           <div className="text-[15vw] font-display uppercase italic whitespace-nowrap rotate-[-5deg] select-none">NYC COOKIES NYC COOKIES NYC COOKIES</div>
+        </div>
+        <div className="container relative z-10 stack-xl items-center">
+          <h2 className="text-8xl md:text-[12rem] leading-[0.8] tracking-tighter">FAITES-VOUS <br />PLAISIR.</h2>
+          <Link href="/shop">
+            <Button size="lg" variant="secondary" className="bg-white text-accent hover:bg-black hover:text-white h-24 px-20 text-3xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500">
+              COMMANDER EN 2 CLICS
+            </Button>
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }

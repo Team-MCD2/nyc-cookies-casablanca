@@ -23,6 +23,7 @@ function rowToProduct(r: any): Product {
     category: r.category as ProductCategory,
     stock: r.stock ?? 0,
     active: r.active ?? true,
+    imageUrl: r.image_url ?? null,
   };
 }
 
