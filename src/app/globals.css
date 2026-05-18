@@ -142,7 +142,7 @@
   -webkit-text-fill-color: transparent;
   transition: background-position 0.8s ease-out;
 }
-.text-reveal:hover {
+.text-reveal.revealed {
   background-position: 0 0;
 }
 

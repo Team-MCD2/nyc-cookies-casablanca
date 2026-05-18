@@ -9,8 +9,9 @@ import { listActiveProducts } from "@/lib/queries";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { InstagramFeed } from "@/components/instagram-feed";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
-export const revalidate = 60; // ISR: refresh once a minute
+export const revalidate = 60; // // ISR: refresh once a minute
 
 export default async function LandingPage() {
   const all = await listActiveProducts().catch(() => []);
@@ -18,6 +19,7 @@ export default async function LandingPage() {
 
   return (
     <div className="flex flex-col bg-black overflow-x-hidden">
+      <ScrollReveal />
       {/* Background Particles Layer */}
       <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
         {[...Array(12)].map((_, i) => (
@@ -57,7 +59,7 @@ export default async function LandingPage() {
               <span className="h-2 w-2 rounded-full bg-accent" />
               L'Original de New York à Casablanca
             </div>
-            <h1 className="text-7xl md:text-8xl lg:text-[10rem] leading-[0.85] text-white font-display uppercase italic perspective-1000 text-reveal cursor-default">
+            <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-[10rem] leading-[0.85] text-white font-display uppercase italic perspective-1000 cursor-default">
               <span className="block animate-in fade-in slide-in-from-left duration-700">The</span>
               <span className="block text-accent text-glow animate-in fade-in slide-in-from-left duration-1000 delay-200">Ultimate</span>
               <span className="block text-gradient-accent animate-in fade-in slide-in-from-left duration-1000 delay-500">Cookie.</span>
@@ -272,7 +274,7 @@ export default async function LandingPage() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
             {/* Store Details Card */}
-            <Card className="glass-morphism border-none p-10 md:p-14 rounded-[2.5rem] stack-xl flex flex-col justify-between hover:bg-white/5 transition-colors duration-700 tilt-card shadow-2xl">
+            <Card className="glass-morphism border-none p-6 sm:p-10 md:p-14 rounded-[2.5rem] stack-xl flex flex-col justify-between hover:bg-white/5 transition-colors duration-700 tilt-card shadow-2xl">
               <div className="stack-lg">
                 <div className="stack-sm">
                   <h3 className="text-5xl font-display text-white italic">{SITE.name.toUpperCase()}</h3>
@@ -319,8 +321,8 @@ export default async function LandingPage() {
                 </div>
               </div>
 
-              <Link href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${SITE.address.street}, ${SITE.address.city}`)}`} target="_blank" className="pt-10">
-                <Button size="lg" className="h-16 w-full text-xl shine-effect rounded-full uppercase tracking-widest shadow-lg hover:shadow-accent/20">
+              <Link href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${SITE.address.street}, ${SITE.address.city}`)}`} target="_blank" className="w-full pt-6 md:pt-10 block">
+                <Button size="lg" className="h-16 w-full text-sm sm:text-base md:text-xl shine-effect rounded-full uppercase tracking-wider sm:tracking-widest shadow-lg hover:shadow-accent/20">
                   Itinéraire Google Maps
                 </Button>
               </Link>

@@ -333,11 +333,13 @@ export function InstagramFeed() {
         <Link 
           href="https://www.instagram.com/nyc_cookies_casa" 
           target="_blank" 
-          className="inline-block"
+          className="inline-block w-full sm:w-auto px-4 sm:px-0"
         >
-          <Button size="lg" className="h-16 px-10 text-base rounded-full bg-accent hover:bg-black text-white hover:text-white transition-all duration-300 shadow-xl hover:shadow-accent/25 group">
-            Rejoindre la communauté @nyc_cookies_casa
-            <Instagram className="ml-3 h-5 w-5 group-hover:rotate-12 transition-transform" />
+          <Button size="lg" className="h-auto min-h-16 py-4 px-6 sm:px-10 text-sm sm:text-base rounded-full bg-accent hover:bg-black text-white hover:text-white transition-all duration-300 shadow-xl hover:shadow-accent/25 group flex items-center justify-center w-full">
+            <span className="text-center leading-snug">
+              Rejoindre la communauté <span className="block sm:inline font-bold">@nyc_cookies_casa</span>
+            </span>
+            <Instagram className="ml-3 h-5 w-5 shrink-0 group-hover:rotate-12 transition-transform" />
           </Button>
         </Link>
       </div>
