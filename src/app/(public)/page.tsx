@@ -8,6 +8,7 @@ import { ProductCard } from "@/components/product-card";
 import { listActiveProducts } from "@/lib/queries";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { InstagramFeed } from "@/components/instagram-feed";
 
 export const revalidate = 60; // ISR: refresh once a minute
 
@@ -339,36 +340,8 @@ export default async function LandingPage() {
 
       <div className="section-divider" />
 
-      {/* Instagram Vibe — Full Width Experience */}
-      <section className="py-40 bg-black relative">
-        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-        <div className="container relative z-10 text-center stack-xl items-center">
-          <div className="stack-sm">
-            <Eyebrow>Join the Community</Eyebrow>
-            <h2 className="text-7xl md:text-9xl italic text-reveal cursor-default">The Vibe.</h2>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
-            {[1, 2, 3, 4].map((n) => (
-              <div key={n} className="aspect-[3/4] relative rounded-3xl overflow-hidden group border border-white/5 tilt-card shadow-2xl">
-                <Image
-                  src={`/images/cookies/${n === 1 ? 'soho' : n === 2 ? 'bronx' : n === 3 ? 'pink-velvet' : 'central-park'}.png`}
-                  alt="NYC Experience"
-                  fill
-                  className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000"
-                />
-                <div className="absolute inset-0 bg-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            ))}
-          </div>
-          
-          <Link href="https://www.instagram.com/nyc_cookies_casa" target="_blank" className="w-full max-w-xs mx-auto">
-            <Button size="lg" variant="outline" className="h-14 md:h-20 w-full px-6 md:px-16 text-lg md:text-2xl rounded-full border-accent text-accent hover:bg-accent hover:text-white transition-all group shadow-xl hover:shadow-accent/20">
-              @nyc_cookies_casa <Instagram className="ml-3 md:ml-4 h-5 w-5 md:h-6 md:w-6 group-hover:rotate-12 transition-transform" />
-            </Button>
-          </Link>
-        </div>
-      </section>
+      {/* Instagram Vibe — Turning Carousel Experience */}
+      <InstagramFeed />
 
       {/* Final CTA — Pure Energy */}
       <section className="py-32 md:py-52 bg-accent text-white text-center relative overflow-hidden">

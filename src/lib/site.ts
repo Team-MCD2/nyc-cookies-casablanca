@@ -27,7 +27,7 @@ export const SITE = {
     { days: "Dimanche", hours: "14h00 – 22h00" },
   ],
   social: {
-    instagram: "https://www.instagram.com/nyccookies.ma/",
+    instagram: "https://www.instagram.com/nyc_cookies_casa/",
     facebook: "https://www.facebook.com/nyccookies.ma/",
     whatsapp: "https://wa.me/212670622380",
   },
