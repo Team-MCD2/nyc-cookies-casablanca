@@ -192,6 +192,30 @@ export async function listInvoicesForPro(proId: string) {
   return (data ?? []).map(rowToInvoice);
 }
 
+export async function getInvoiceByReference(reference: string) {
+  const sb = createAdminClient();
+  const { data } = await sb
+    .from("invoices")
+    .select("*, pros(*)")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (!data) return null;
+
+  let orderData = null;
+  if (data.order_id) {
+    const { data: ord } = await sb.from("orders").select("*").eq("id", data.order_id).maybeSingle();
+    if (ord) {
+      orderData = rowToOrder(ord);
+    }
+  }
+
+  return {
+    ...rowToInvoice(data),
+    pro: data.pros ? rowToPro(data.pros) : null,
+    order: orderData,
+  };
+}
+
 // ---------- Invitations ----------
 export async function listInvitations() {
   const sb = createAdminClient();

@@ -103,7 +103,7 @@ export default async function LandingPage() {
       <div className="section-divider" />
 
       {/* Featured Products — Dynamic Staggered Grid */}
-      <section className="py-40 relative">
+      <section className="py-40 relative" id="products">
         <div className="container">
           <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
             <div className="stack-sm max-w-2xl">
@@ -137,7 +137,7 @@ export default async function LandingPage() {
       <div className="section-divider" />
 
       {/* Story Section — Cinematic Asymmetry */}
-      <section className="py-24 md:py-40 bg-surface-1 relative overflow-hidden">
+      <section className="py-24 md:py-40 bg-surface-1 relative overflow-hidden" id="story">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')]" />
         
         <div className="container relative z-10">

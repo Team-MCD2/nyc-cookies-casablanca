@@ -48,7 +48,7 @@ export function AppShell({ role, brandRole, topbarTitle, topbarActions, user, ch
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[var(--sidebar-w)_1fr]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[var(--sidebar-w)_1fr] print:block print:w-full">
       {/* Sidebar */}
       <aside
         className={cn(
@@ -56,6 +56,7 @@ export function AppShell({ role, brandRole, topbarTitle, topbarActions, user, ch
           "border-r border-border bg-surface shadow-elev-lg transition-transform duration-base",
           open ? "translate-x-0" : "-translate-x-full",
           "lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:max-w-none lg:translate-x-0 lg:shadow-none",
+          "print:hidden",
         )}
       >
         {/* Brand */}
@@ -141,7 +142,7 @@ export function AppShell({ role, brandRole, topbarTitle, topbarActions, user, ch
       {/* Main */}
       <div className="flex min-w-0 flex-col">
         {/* Topbar */}
-        <div className="app-topbar flex items-center justify-between px-6">
+        <div className="app-topbar flex items-center justify-between px-6 print:hidden">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -164,7 +165,7 @@ export function AppShell({ role, brandRole, topbarTitle, topbarActions, user, ch
         </div>
 
         {/* Page */}
-        <main className="p-4 sm:p-6">{children}</main>
+        <main className="p-4 sm:p-6 print:p-0 print:m-0 print:w-full">{children}</main>
       </div>
     </div>
   );

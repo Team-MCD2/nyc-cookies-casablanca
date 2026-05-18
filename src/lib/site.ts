@@ -36,7 +36,7 @@ export const SITE = {
 export const PUBLIC_NAV = [
   { href: "/#products", label: "Cookies" },
   { href: "/#story", label: "Notre histoire" },
-  { href: "/#pro", label: "Espace Pros" },
+  { href: "/pro", label: "Espace Pros" },
   { href: "/shop", label: "Boutique" },
 ] as const;
 

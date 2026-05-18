@@ -78,7 +78,7 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
   const { count } = await sb.from("orders").select("*", { count: "exact", head: true });
   const reference = nextRef("ord", count ?? 0);
 
-  const { error } = await sb.from("orders").insert({
+  const { data: ord, error } = await sb.from("orders").insert({
     reference,
     customer_type: isPro ? "pro" : "b2c",
     customer_id: isPro ? null : linked.id,
@@ -87,7 +87,7 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
     total_mad: total,
     status: "pending",
     payment: isPro ? "pending" : "paid",
-  });
+  }).select("id").single();
   if (error) throw error;
 
   // Auto-generate a 30-day invoice for pros
@@ -99,7 +99,7 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
     await sb.from("invoices").insert({
       reference: `INV-${today.getFullYear()}-${seq}`,
       pro_id: linked.id,
-      order_id: null, // FK lookup by reference can be done in a follow-up update
+      order_id: ord?.id ?? null,
       issue_date: today.toISOString().slice(0, 10),
       due_date: due.toISOString().slice(0, 10),
       amount_mad: total,
@@ -230,4 +230,78 @@ export async function deleteClerkUser(clerkUserId: string) {
   revalidatePath("/admin/users");
   revalidatePath("/admin/customers");
   revalidatePath("/admin/pros");
+}
+
+/** Simulate sending an invoice email to a pro client. */
+export async function sendInvoiceEmail(reference: string) {
+  const session = await requireSession();
+  const sb = createAdminClient();
+
+  const { data: inv } = await sb
+    .from("invoices")
+    .select("*, pros(*)")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (!inv) throw new Error("Facture introuvable.");
+
+  if (session.role === "pro") {
+    const { data: linkedPro } = await sb
+      .from("pros")
+      .select("id")
+      .eq("clerk_user_id", session.userId)
+      .maybeSingle();
+    if (!linkedPro || linkedPro.id !== inv.pro_id) {
+      throw new Error("Action non autorisée.");
+    }
+  }
+
+  const targetEmail = inv.pros?.email;
+  if (!targetEmail) throw new Error("Adresse email du client introuvable.");
+
+  console.log(`[EMAIL SIMULATOR] Sending invoice ${inv.reference} to ${targetEmail}`);
+  console.log(`[EMAIL SIMULATOR] Subject: Votre facture NYC Cookies - ${inv.reference}`);
+  console.log(`[EMAIL SIMULATOR] Body: Bonjour ${inv.pros.company}, veuillez trouver ci-dessous le récapitulatif de votre facture ${inv.reference} d'un montant de ${inv.amount_mad} MAD.`);
+
+  return {
+    success: true,
+    email: targetEmail,
+    message: `La facture ${inv.reference} a été envoyée avec succès par mail à ${targetEmail} !`,
+  };
+}
+
+/** Simulate sending an order receipt email to a B2C client. */
+export async function sendOrderReceiptEmail(reference: string) {
+  const session = await requireSession();
+  const sb = createAdminClient();
+
+  const { data: ord } = await sb
+    .from("orders")
+    .select("*, customers(*)")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (!ord) throw new Error("Commande introuvable.");
+
+  if (session.role === "b2c") {
+    const { data: linkedCustomer } = await sb
+      .from("customers")
+      .select("id")
+      .eq("clerk_user_id", session.userId)
+      .maybeSingle();
+    if (!linkedCustomer || linkedCustomer.id !== ord.customer_id) {
+      throw new Error("Action non autorisée.");
+    }
+  }
+
+  const targetEmail = ord.customers?.email;
+  if (!targetEmail) throw new Error("Adresse email du client introuvable.");
+
+  console.log(`[EMAIL SIMULATOR] Sending order receipt ${ord.reference} to ${targetEmail}`);
+  console.log(`[EMAIL SIMULATOR] Subject: Votre reçu de commande NYC Cookies - ${ord.reference}`);
+  console.log(`[EMAIL SIMULATOR] Body: Bonjour ${ord.customers.name}, merci pour votre commande ! Référence : ${ord.reference}. Total : ${ord.total_mad} MAD.`);
+
+  return {
+    success: true,
+    email: targetEmail,
+    message: `Le reçu de la commande ${ord.reference} a été envoyé avec succès par mail à ${targetEmail} !`,
+  };
 }

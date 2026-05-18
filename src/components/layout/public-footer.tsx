@@ -7,7 +7,7 @@ export function PublicFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-16 border-t border-border bg-[#050505] text-text-2">
+    <footer className="mt-16 border-t border-border bg-[#050505] text-text-2 print:hidden">
       {/* Top */}
       <div className="container grid gap-8 py-12 md:grid-cols-[2.2fr_1fr_1.3fr_1fr] md:gap-10">
         {/* Brand */}

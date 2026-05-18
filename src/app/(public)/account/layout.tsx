@@ -63,9 +63,9 @@ export default async function AccountLayout({
   const customer = await getCustomerForUser(session.userId);
 
   return (
-    <Container className="py-10 md:py-12">
+    <Container className="py-10 md:py-12 print:p-0 print:m-0 print:w-full">
       {/* Identity strip */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6 print:hidden">
         <div className="flex items-center gap-4">
           <Avatar name={displayName} size="lg" />
           <div className="min-w-0">
@@ -91,10 +91,12 @@ export default async function AccountLayout({
       </div>
 
       {/* Tab nav */}
-      <AccountTabs />
+      <div className="print:hidden">
+        <AccountTabs />
+      </div>
 
       {/* Page content */}
-      <div className="mt-6">{children}</div>
+      <div className="mt-6 print:m-0 print:p-0">{children}</div>
     </Container>
   );
 }

@@ -17,6 +17,7 @@ import { OrderStatusBadge, PaymentStatusBadge } from "@/components/status-badge"
 import { requireSession, getCustomerForUser } from "@/lib/auth";
 import { getOrderForCustomer, listProducts } from "@/lib/queries";
 import { money, formatDate } from "@/lib/utils";
+import { OrderActions } from "@/components/order-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -67,18 +68,21 @@ export default async function AccountOrderDetailPage({ params }: PageProps) {
 
   return (
     <div className="stack-lg">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           href="/account/orders"
           className="inline-flex items-center gap-1.5 text-[0.9rem] text-text-3 hover:text-accent"
         >
           <ArrowLeft className="h-4 w-4" /> Retour aux commandes
         </Link>
-        <Link href="/shop">
-          <Button variant="outline" size="sm">
-            Recommander
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <OrderActions reference={order.id} customerEmail={customer.email} />
+          <Link href="/shop">
+            <Button variant="outline" size="sm">
+              Recommander
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Order summary header */}
