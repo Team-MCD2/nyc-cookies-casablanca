@@ -225,6 +225,11 @@ export default async function LandingPage() {
 
       <div className="section-divider" />
 
+      {/* Instagram Vibe — Turning Carousel Experience */}
+      <InstagramFeed />
+
+      <div className="section-divider" />
+
       {/* FAQ — Minimalist & Bold */}
       <section className="py-24 md:py-40 bg-surface-1 border-t border-white/5">
         <div className="container max-w-5xl">
@@ -338,10 +343,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <div className="section-divider" />
 
-      {/* Instagram Vibe — Turning Carousel Experience */}
-      <InstagramFeed />
 
       {/* Final CTA — Pure Energy */}
       <section className="py-32 md:py-52 bg-accent text-white text-center relative overflow-hidden">
