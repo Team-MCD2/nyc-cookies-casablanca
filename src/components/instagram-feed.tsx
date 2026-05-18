@@ -160,11 +160,9 @@ const ROW2 = INSTAGRAM_POSTS.slice(9);
 
 export function InstagramFeed() {
   const [activePost, setActivePost] = useState<InstagramPost | null>(null);
-  const [iframeLoading, setIframeLoading] = useState(true);
 
   const openLightbox = (post: InstagramPost) => {
     setActivePost(post);
-    setIframeLoading(true);
   };
 
   const closeLightbox = () => {
@@ -222,7 +220,7 @@ export function InstagramFeed() {
           Le Labo <span className="italic text-accent">En Mouvement</span>
         </h2>
         <p className="text-text-muted mt-4 max-w-xl mx-auto text-sm md:text-base font-light">
-          Clique sur une publication pour voir la vidéo de préparation en direct du laboratoire à Casablanca !
+          Découvrez la préparation de nos cookies en direct de notre laboratoire à Casablanca !
         </p>
       </div>
 
@@ -344,7 +342,7 @@ export function InstagramFeed() {
         </Link>
       </div>
 
-      {/* Video & Embed Lightbox Modal */}
+      {/* Direct Native Video & Image Lightbox Modal */}
       {activePost && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in p-4">
           <div className="absolute inset-0" onClick={closeLightbox} />
@@ -368,24 +366,45 @@ export function InstagramFeed() {
               </button>
             </div>
 
-            {/* Embed Container */}
+            {/* Direct Media Player Container (Instant Load, Autoplay & Volume controls enabled) */}
             <div className="relative flex-1 overflow-y-auto min-h-[380px] md:min-h-[500px] flex items-center justify-center p-4 bg-black">
-              {iframeLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-20 bg-black">
-                  <div className="h-10 w-10 rounded-full border-t-2 border-l-2 border-accent animate-spin" />
+              {activePost.type === "reel" ? (
+                <video
+                  src={`/videos/instagram/${activePost.code}.mp4`}
+                  autoPlay
+                  controls
+                  playsInline
+                  loop
+                  className="mx-auto max-h-[70vh] rounded-xl object-contain bg-black w-full"
+                  style={{ minHeight: "440px" }}
+                />
+              ) : (
+                <div className="relative w-full aspect-[4/5] max-h-[70vh] rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                  <Image
+                    src={activePost.imageUrl}
+                    alt={activePost.caption}
+                    fill
+                    className="object-contain"
+                  />
                 </div>
               )}
-              <iframe
-                src={`https://www.instagram.com/${activePost.type === "reel" ? "reel" : "p"}/${activePost.code}/embed/captioned/`}
-                width="100%"
-                height="480"
-                frameBorder="0"
-                scrolling="no"
-                allowTransparency={true}
-                className="mx-auto rounded-xl max-w-full"
-                onLoad={() => setIframeLoading(false)}
-                style={{ minHeight: "440px" }}
-              />
+            </div>
+
+            {/* Post Details (Caption + Stats) */}
+            <div className="px-6 py-5 border-t border-white/5 bg-[#0e0e0e] text-left">
+              <p className="text-white text-sm font-light leading-relaxed mb-4">
+                {activePost.caption}
+              </p>
+              <div className="flex gap-6 text-xs font-semibold text-text-2">
+                <div className="flex items-center gap-1.5 text-red-500">
+                  <Heart className="h-4 w-4 fill-current" />
+                  <span>{activePost.likes} likes</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-accent">
+                  <MessageCircle className="h-4 w-4 fill-current" />
+                  <span>{activePost.comments} commentaires</span>
+                </div>
+              </div>
             </div>
 
             {/* Modal Bottom Action Bar */}
