@@ -1,13 +1,41 @@
-import { SignUp } from "@clerk/nextjs";
+import Link from "next/link";
+import { Mail, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SITE } from "@/lib/site";
 
 export default function SignupPage() {
   return (
-    <div className="w-full max-w-[440px]">
-      <h1 className="font-display text-[2rem] tracking-[0.04em]">Créer un compte</h1>
-      <p className="mt-1 text-text-3">Rejoignez NYC Cookies et commandez en quelques clics.</p>
-      <div className="mt-6">
-        <SignUp appearance={{ elements: { rootBox: "w-full", card: "bg-transparent shadow-none" } }} />
+    <div className="w-full max-w-[440px] text-center md:text-left">
+      <h1 className="font-display text-[2rem] tracking-[0.04em] text-text">Espace Professionnel</h1>
+      <p className="mt-2 text-text-3 leading-relaxed">
+        L'accès à notre plateforme **NYC Cookies Casablanca** est exclusivement réservé aux clients professionnels (B2B). 
+        Les inscriptions se font uniquement sur invitation par notre équipe.
+      </p>
+
+      <div className="mt-8 p-6 rounded-2xl bg-bg-2 border border-border/50 text-left stack-sm">
+        <h3 className="font-medium text-text text-[1rem]">Comment obtenir un compte Pro ?</h3>
+        <p className="text-[0.9rem] text-text-3">
+          Contactez-nous pour soumettre votre demande d'ouverture de compte. Notre équipe vous transmettra un lien d'activation unique par e-mail ou WhatsApp.
+        </p>
+
+        <div className="mt-4 pt-4 border-t border-border/50 stack-xs">
+          <a href={`tel:${SITE.phone}`} className="flex items-center gap-3 text-[0.9rem] text-text hover:text-primary transition-colors">
+            <Phone className="h-4 w-4 text-text-3" />
+            <span>{SITE.phone}</span>
+          </a>
+          <a href={`mailto:${SITE.email}`} className="flex items-center gap-3 text-[0.9rem] text-text hover:text-primary transition-colors">
+            <Mail className="h-4 w-4 text-text-3" />
+            <span>{SITE.email}</span>
+          </a>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col sm:flex-row gap-3">
+        <Link href="/login" className="w-full">
+          <Button block variant="outline">Se connecter à un compte existant</Button>
+        </Link>
       </div>
     </div>
   );
 }
+
