@@ -54,7 +54,7 @@ export default function WhatsAppAdminPage() {
           {status?.connected ? (
             <Badge variant="success">Connecté</Badge>
           ) : (
-            <Badge variant="destructive">Déconnecté</Badge>
+            <Badge variant="danger">Déconnecté</Badge>
           )}
         </div>
 
