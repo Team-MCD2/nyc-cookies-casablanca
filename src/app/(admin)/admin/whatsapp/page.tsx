@@ -130,6 +130,47 @@ export default function WhatsAppAdminPage() {
         subtitle="Gérez l'envoi automatique des rappels de commande aux pros."
       />
 
+      {/* QR Code / Pairing Code Display Section */}
+      {status && !status.connected && (status.qr || status.pairingCode) && (
+        <Card className="flex flex-col gap-6 p-6">
+          <h2 className="font-display text-xl">Codes de Connexion Actifs</h2>
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Pairing Code */}
+            {status.pairingCode && (
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-accent" />
+                  <p className="text-text-2 font-medium">Code d'Appairage</p>
+                </div>
+                <p className="text-text-3 text-sm text-center">Entrez ce code sur WhatsApp &gt; Appareils liés &gt; Lier avec numéro :</p>
+                <div className="bg-surface-2 p-6 rounded-xl border border-border-strong text-center w-full">
+                  <span className="font-mono text-4xl font-bold tracking-widest">{status.pairingCode}</span>
+                </div>
+              </div>
+            )}
+
+            {/* QR Code */}
+            {status.qr && (
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <QrCode className="h-5 w-5 text-accent" />
+                  <p className="text-text-2 font-medium">Code QR</p>
+                </div>
+                <p className="text-text-3 text-sm text-center">Scannez ce QR code dans WhatsApp &gt; Appareils liés :</p>
+                <div className="bg-white p-4 rounded-xl inline-block border border-border-strong">
+                  <img src={status.qr} alt="QR Code" width={220} height={220} className="rounded-lg" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Button onClick={logoutBot} variant="ghost" className="mx-auto">
+            Annuler
+          </Button>
+        </Card>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         {/* CONNEXION BOT */}
         <Card className="flex flex-col gap-6 p-6">
@@ -198,28 +239,6 @@ export default function WhatsAppAdminPage() {
                 <Play className="mr-2 h-4 w-4" /> 
                 {method === "pairing_code" ? "Générer le Code" : "Générer le QR"}
               </Button>
-            </div>
-          )}
-
-          {/* Waiting for Pairing Code validation */}
-          {status && !status.connected && status.pairingCode && (
-            <div className="flex flex-col items-center gap-4 py-4">
-              <p className="text-text-2 text-sm text-center">Entrez ce code sur WhatsApp &gt; Appareils liés &gt; Lier avec numéro :</p>
-              <div className="bg-surface-2 p-4 rounded-xl border border-border-strong text-center">
-                <span className="font-mono text-3xl font-bold tracking-widest">{status.pairingCode}</span>
-              </div>
-              <Button onClick={logoutBot} variant="ghost" size="sm">Annuler</Button>
-            </div>
-          )}
-
-          {/* Waiting for QR Code scan */}
-          {status && !status.connected && status.qr && (
-            <div className="flex flex-col items-center gap-4 py-4">
-              <p className="text-text-2 text-sm text-center">Scannez ce QR code dans WhatsApp &gt; Appareils liés :</p>
-              <div className="bg-white p-2 rounded-xl inline-block">
-                <img src={status.qr} alt="QR Code" width={200} height={200} className="rounded-lg" />
-              </div>
-              <Button onClick={logoutBot} variant="ghost" size="sm">Annuler</Button>
             </div>
           )}
         </Card>
