@@ -44,6 +44,7 @@ create table if not exists public.products (
   price_mad    integer not null check (price_mad >= 0),
   stock        integer not null default 0,
   active       boolean not null default true,
+  image_url    text,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );

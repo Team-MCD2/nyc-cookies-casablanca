@@ -68,7 +68,10 @@ export const ADMIN_NAV = [
   },
   {
     label: "Système",
-    links: [{ href: "/admin/users", icon: "shield-check", text: "Utilisateurs" }],
+    links: [
+      { href: "/admin/users", icon: "shield-check", text: "Utilisateurs" },
+      { href: "/admin/whatsapp", icon: "layout-dashboard", text: "WhatsApp Bot" },
+    ],
   },
 ] as const;
 

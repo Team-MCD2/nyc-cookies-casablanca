@@ -47,7 +47,7 @@ export function InvoiceActions({ reference, proEmail, showViewButton = true }: I
           </Button>
         </Link>
       )}
-      <Link href={`/pro/invoices/${reference}?print=true`} target="_blank">
+      <Link href={`/invoices/${reference}/print`} target="_blank">
         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Imprimer la facture">
           <Printer className="h-3.5 w-3.5 text-text-3 hover:text-accent" />
         </Button>
