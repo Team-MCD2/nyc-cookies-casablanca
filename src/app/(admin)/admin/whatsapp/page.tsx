@@ -68,7 +68,7 @@ export default function WhatsAppAdminPage() {
 
         {status?.qr && !status.connected && (
           <div className="flex flex-col items-center gap-4">
-            <p className="text-text-2 text-sm">Ouvrez WhatsApp sur votre téléphone > Appareils liés > Lier un appareil, puis scannez ce code :</p>
+            <p className="text-text-2 text-sm">Ouvrez WhatsApp sur votre téléphone &gt; Appareils liés &gt; Lier un appareil, puis scannez ce code :</p>
             <div className="bg-white p-2 rounded-xl">
               <img src={status.qr || ""} alt="QR Code WhatsApp" width={256} height={256} className="rounded-lg" />
             </div>
