@@ -71,7 +71,7 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
             browser: ["Windows", "Chrome", "110.0.5481.100"]
         });
 
-        if (method === 'pairing_code' && phoneNumber && !sock.authState.creds.me) {
+        if (method === 'pairing_code' && phoneNumber) {
             // Attendre un court instant avant de demander le code d'association
             setTimeout(async () => {
                 try {
@@ -79,10 +79,12 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
                     let code = await sock.requestPairingCode(phoneNumber);
                     pairingCode = code?.match(/.{1,4}/g)?.join("-") || code;
                     console.log("[BOT] Code d'association généré :", pairingCode);
+                    console.log("[BOT] Pairing code stocké dans la variable globale");
                 } catch (err) {
                     console.error("[BOT] Erreur lors de la demande de code d'association :", err);
+                    pairingCode = null;
                 }
-            }, 3000);
+            }, 2000);
         }
 
         sock.ev.on('connection.update', async (update) => {
@@ -95,6 +97,18 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
                     console.log('[BOT] Nouveau code QR généré.');
                 } catch (err) {
                     console.error("[BOT] Erreur de génération du code QR Base64 :", err);
+                }
+            }
+
+            // Demander le pairing code si la méthode est pairing_code et pas encore généré
+            if (method === 'pairing_code' && phoneNumber && !pairingCode && connection !== 'close') {
+                try {
+                    console.log(`[BOT] Demande du code d'association via connection.update pour : ${phoneNumber}`);
+                    let code = await sock.requestPairingCode(phoneNumber);
+                    pairingCode = code?.match(/.{1,4}/g)?.join("-") || code;
+                    console.log("[BOT] Code d'association généré via connection.update :", pairingCode);
+                } catch (err) {
+                    console.error("[BOT] Erreur lors de la demande du pairing code :", err);
                 }
             }
 

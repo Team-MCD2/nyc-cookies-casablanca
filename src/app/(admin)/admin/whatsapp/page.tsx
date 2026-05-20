@@ -23,6 +23,7 @@ export default function WhatsAppAdminPage() {
   const [cronTimeInput, setCronTimeInput] = useState("");
   const [method, setMethod] = useState<"qr" | "pairing_code">("pairing_code");
   const [actionLoading, setActionLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
 
   async function fetchStatus(showToast = false) {
@@ -50,13 +51,20 @@ export default function WhatsAppAdminPage() {
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(() => {
-      // Poll if not connected but trying to connect (has QR or code)
-      if (status && !status.connected && (status.qr || status.pairingCode)) {
+      // Poll if not connected but trying to connect (has QR, code, or is actively connecting)
+      if (isConnecting || (status && !status.connected && (status.qr || status.pairingCode))) {
         fetchStatus();
       }
-    }, 5000);
+    }, 2000);
     return () => clearInterval(interval);
-  }, [status?.connected, status?.qr, status?.pairingCode]);
+  }, [isConnecting, status?.connected, status?.qr, status?.pairingCode]);
+
+  // Reset connecting state when successfully connected or when connection state becomes available
+  useEffect(() => {
+    if (status?.connected || (!status?.qr && !status?.pairingCode && !isConnecting)) {
+      setIsConnecting(false);
+    }
+  }, [status?.connected, status?.qr, status?.pairingCode, isConnecting]);
 
   async function startConnection() {
     if (method === "pairing_code" && !phone) {
@@ -64,6 +72,7 @@ export default function WhatsAppAdminPage() {
       return;
     }
     setActionLoading(true);
+    setIsConnecting(true);
     try {
       const res = await fetch("/api/admin/whatsapp?action=start", {
         method: "POST",
@@ -76,9 +85,11 @@ export default function WhatsAppAdminPage() {
       } else {
         const data = await res.json();
         toast({ title: "Erreur", message: data.error || "Impossible de démarrer.", type: "danger" });
+        setIsConnecting(false);
       }
     } catch (e) {
       toast({ title: "Erreur", message: "Le bot est inaccessible.", type: "danger" });
+      setIsConnecting(false);
     } finally {
       setActionLoading(false);
     }
@@ -86,6 +97,7 @@ export default function WhatsAppAdminPage() {
 
   async function logoutBot() {
     setActionLoading(true);
+    setIsConnecting(false);
     try {
       const res = await fetch("/api/admin/whatsapp?action=logout", { method: "POST" });
       if (res.ok) {
