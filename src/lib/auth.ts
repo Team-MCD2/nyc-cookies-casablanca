@@ -213,7 +213,7 @@ export async function consumePendingInvitation() {
   const sb = createAdminClient();
   const { data: inv } = await sb
     .from("invitations")
-    .select("token, company, contact_name, email, used_at")
+    .select("token, company, contact_name, email, phone, used_at")
     .eq("token", token)
     .maybeSingle();
   if (!inv || inv.used_at) return; // unknown or already consumed
@@ -236,7 +236,7 @@ export async function consumePendingInvitation() {
       company: inv.company,
       contact_name: inv.contact_name,
       email: u.primaryEmail ?? inv.email,
-      phone: u.primaryPhone,
+      phone: inv.phone || u.primaryPhone,
       payment_terms_days: 30,
       status: "active",
     });

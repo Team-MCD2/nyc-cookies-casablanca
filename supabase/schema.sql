@@ -119,6 +119,7 @@ create table if not exists public.invitations (
   company       text not null,
   contact_name  text not null,
   email         text not null,
+  phone         text,
   used_at       timestamptz,
   created_at    timestamptz not null default now()
 );

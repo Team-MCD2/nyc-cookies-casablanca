@@ -59,11 +59,18 @@ export async function POST(req: Request) {
       const { data: inv } = await sb.from('invitations').select('*').eq('token', token).single();
       
       if (inv && !inv.used_at) {
-        // 2. Link Clerk ID to Pro
+        // 2. Create the Pro row
         const { error: proError } = await sb
           .from('pros')
-          .update({ clerk_user_id: id })
-          .eq('email', inv.email);
+          .insert({
+            clerk_user_id: id,
+            company: inv.company,
+            contact_name: inv.contact_name,
+            email: evt.data.email_addresses?.[0]?.email_address ?? inv.email,
+            phone: inv.phone,
+            payment_terms_days: 30,
+            status: 'active'
+          });
 
         if (!proError) {
           // 3. Mark invitation as used

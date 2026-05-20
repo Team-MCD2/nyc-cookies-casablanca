@@ -138,6 +138,7 @@ const inviteSchema = z.object({
   company: z.string().min(1),
   contactName: z.string().min(1),
   email: z.string().email(),
+  phone: z.string().min(1, "Numéro de téléphone requis"),
 });
 
 export async function createInvitation(input: z.input<typeof inviteSchema>) {
@@ -154,6 +155,7 @@ export async function createInvitation(input: z.input<typeof inviteSchema>) {
     company: data.company,
     contact_name: data.contactName,
     email: data.email,
+    phone: data.phone,
   });
   if (error) throw error;
   revalidatePath("/admin/pros");

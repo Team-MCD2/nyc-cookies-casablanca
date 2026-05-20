@@ -24,6 +24,7 @@ export function InviteProForm() {
         company: String(fd.get("company") ?? ""),
         contactName: String(fd.get("contactName") ?? ""),
         email: String(fd.get("email") ?? ""),
+        phone: String(fd.get("phone") ?? ""),
       });
       const link = `${window.location.origin}/pro-invite?token=${token}`;
       setGeneratedLink(link);
@@ -89,6 +90,10 @@ export function InviteProForm() {
             <Field>
               <Label htmlFor="email">Email professionnel</Label>
               <Input name="email" id="email" type="email" required placeholder="achats@societe.ma" />
+            </Field>
+            <Field>
+              <Label htmlFor="phone">Numéro de téléphone WhatsApp</Label>
+              <Input name="phone" id="phone" type="tel" required placeholder="+212600000000" />
             </Field>
             {error && <FieldError>{error}</FieldError>}
             <Button type="submit" disabled={submitting} block>
