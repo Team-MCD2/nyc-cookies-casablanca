@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { PageHeader } from "@/components/ui/misc";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +70,7 @@ export default function WhatsAppAdminPage() {
           <div className="flex flex-col items-center gap-4">
             <p className="text-text-2 text-sm">Ouvrez WhatsApp sur votre téléphone > Appareils liés > Lier un appareil, puis scannez ce code :</p>
             <div className="bg-white p-2 rounded-xl">
-              <Image src={status.qr} alt="QR Code WhatsApp" width={256} height={256} className="rounded-lg" />
+              <img src={status.qr} alt="QR Code WhatsApp" width={256} height={256} className="rounded-lg" />
             </div>
           </div>
         )}
