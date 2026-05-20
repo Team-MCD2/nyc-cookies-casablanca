@@ -61,7 +61,7 @@ export function AppShell({ role, brandRole, topbarTitle, topbarActions, user, ch
       >
         {/* Brand */}
         <Link
-          href={role === "admin" ? "/admin/dashboard" : "/pro/dashboard"}
+          href="/"
           className="flex items-center gap-3 border-b border-border px-5 py-5"
           onClick={() => setOpen(false)}
         >

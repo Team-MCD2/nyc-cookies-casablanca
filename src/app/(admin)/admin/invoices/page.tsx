@@ -1,18 +1,16 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/misc";
 import { InvoiceStatusBadge } from "@/components/status-badge";
 import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
-import { listInvoices, listPros } from "@/lib/queries";
+import { listInvoices } from "@/lib/queries";
 import { money, formatDate } from "@/lib/utils";
+import { Printer } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminInvoicesPage() {
-  const [invoices, pros] = await Promise.all([
-    listInvoices().catch(() => []),
-    listPros().catch(() => []),
-  ]);
-  const proMap = new Map(pros.map((p) => [p.id, p]));
+  const invoices = await listInvoices().catch(() => []);
 
   return (
     <>
@@ -28,26 +26,43 @@ export default async function AdminInvoicesPage() {
             <Thead>
               <Tr>
                 <Th>Référence</Th>
-                <Th>Pro</Th>
+                <Th>Client</Th>
+                <Th>Type</Th>
                 <Th>Émise</Th>
                 <Th>Échéance</Th>
                 <Th className="text-right">Montant</Th>
                 <Th>Statut</Th>
+                <Th className="text-center">Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {invoices.map((i) => (
-                <Tr key={i.id}>
-                  <Td className="font-mono text-[0.85rem]">{i.id}</Td>
-                  <Td className="text-[0.9rem]">{proMap.get(i.proId)?.company ?? "—"}</Td>
-                  <Td>{formatDate(i.issueDate)}</Td>
-                  <Td>{formatDate(i.dueDate)}</Td>
-                  <Td className="text-right tabular-nums">{money(i.amount)}</Td>
-                  <Td>
-                    <InvoiceStatusBadge status={i.status} />
-                  </Td>
-                </Tr>
-              ))}
+              {invoices.map((i) => {
+                const clientName = i.pro?.company || i.customer?.name || "—";
+                const clientType = i.proId ? "Pro 💼" : "Particulier 🍪";
+                return (
+                  <Tr key={i.id}>
+                    <Td className="font-mono text-[0.85rem]">{i.id}</Td>
+                    <Td className="text-[0.9rem]">{clientName}</Td>
+                    <Td className="text-[0.8rem] text-text-2">{clientType}</Td>
+                    <Td>{formatDate(i.issueDate)}</Td>
+                    <Td>{formatDate(i.dueDate)}</Td>
+                    <Td className="text-right tabular-nums">{money(i.amount)}</Td>
+                    <Td>
+                      <InvoiceStatusBadge status={i.status} />
+                    </Td>
+                    <Td className="text-center">
+                      <Link
+                        href={`/admin/invoices/${i.id}/print`}
+                        target="_blank"
+                        className="inline-flex items-center justify-center rounded-md p-2 text-text-2 transition-colors hover:bg-surface-2 hover:text-accent"
+                        title="Imprimer la facture"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Link>
+                    </Td>
+                  </Tr>
+                );
+              })}
             </Tbody>
           </Table>
         </TableWrap>

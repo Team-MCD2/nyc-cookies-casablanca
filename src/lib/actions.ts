@@ -90,20 +90,32 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
   }).select("id").single();
   if (error) throw error;
 
-  // Auto-generate a 30-day invoice for pros
+  const { count: ic } = await sb.from("invoices").select("*", { count: "exact", head: true });
+  const seq = ((ic ?? 0) + 1).toString().padStart(4, "0");
+  const today = new Date();
+
   if (isPro) {
-    const { count: ic } = await sb.from("invoices").select("*", { count: "exact", head: true });
-    const seq = ((ic ?? 0) + 1).toString().padStart(4, "0");
-    const today = new Date();
     const due = new Date(today.getTime() + 30 * 86400000);
     await sb.from("invoices").insert({
       reference: `INV-${today.getFullYear()}-${seq}`,
       pro_id: linked.id,
+      customer_id: null,
       order_id: ord?.id ?? null,
       issue_date: today.toISOString().slice(0, 10),
       due_date: due.toISOString().slice(0, 10),
       amount_mad: total,
       status: "upcoming",
+    });
+  } else {
+    await sb.from("invoices").insert({
+      reference: `INV-${today.getFullYear()}-${seq}`,
+      pro_id: null,
+      customer_id: linked.id,
+      order_id: ord?.id ?? null,
+      issue_date: today.toISOString().slice(0, 10),
+      due_date: today.toISOString().slice(0, 10),
+      amount_mad: total,
+      status: "paid",
     });
   }
 

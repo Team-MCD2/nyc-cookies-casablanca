@@ -194,36 +194,44 @@ export default async function LandingPage() {
         <div className="container relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div className="stack-lg">
-              <div className="stack-sm">
+              <div className="stack-sm reveal-up">
                 <Eyebrow>Offre B2B & Distribution</Eyebrow>
                 <h2 className="text-5xl md:text-7xl mt-4 text-reveal cursor-default">
                   NYC Cookies pour votre <span className="italic text-accent">établissement</span>
                 </h2>
               </div>
-              <p className="text-lg md:text-xl text-text-2 font-light leading-relaxed">
+              <p className="text-lg md:text-xl text-text-2 font-light leading-relaxed reveal-up delay-100">
                 Rejoignez les meilleurs cafés, restaurants et hôtels de Casablanca qui font confiance à NYC Cookies pour ravir leur clientèle.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
-                <div className="stack-xs">
-                  <h4 className="text-white font-bold text-lg">💡 Commandes Simples</h4>
-                  <p className="text-text-3 text-sm">Passez vos commandes professionnelles en 2 clics sur notre portail dédié.</p>
+                <div className="stack-xs reveal-up delay-200 group cursor-default">
+                  <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                    <span className="group-hover:scale-125 group-hover:rotate-12 transition-transform duration-300">💡</span> Commandes Simples
+                  </h4>
+                  <p className="text-text-3 text-sm group-hover:text-white transition-colors duration-300">Passez vos commandes professionnelles en 2 clics sur notre portail dédié.</p>
                 </div>
-                <div className="stack-xs">
-                  <h4 className="text-white font-bold text-lg">💬 Rappels WhatsApp</h4>
-                  <p className="text-text-3 text-sm">Notification et rappel automatique tous les soirs sur WhatsApp pour vos commandes du lendemain.</p>
+                <div className="stack-xs reveal-up delay-300 group cursor-default">
+                  <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                    <span className="group-hover:scale-125 group-hover:-rotate-12 transition-transform duration-300">💬</span> Rappels WhatsApp
+                  </h4>
+                  <p className="text-text-3 text-sm group-hover:text-white transition-colors duration-300">Notification et rappel automatique tous les soirs sur WhatsApp pour vos commandes du lendemain.</p>
                 </div>
-                <div className="stack-xs">
-                  <h4 className="text-white font-bold text-lg">🚚 Livraison Matinale</h4>
-                  <p className="text-text-3 text-sm">Livraison directe dans votre point de vente avant l'ouverture avec respect de la chaîne du frais.</p>
+                <div className="stack-xs reveal-up delay-400 group cursor-default">
+                  <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                    <span className="group-hover:scale-125 group-hover:translate-x-1 transition-transform duration-300">🚚</span> Livraison Matinale
+                  </h4>
+                  <p className="text-text-3 text-sm group-hover:text-white transition-colors duration-300">Livraison directe dans votre point de vente avant l'ouverture avec respect de la chaîne du frais.</p>
                 </div>
-                <div className="stack-xs">
-                  <h4 className="text-white font-bold text-lg">📄 Facturation Flexible</h4>
-                  <p className="text-text-3 text-sm">Relevés de factures clairs et délais de paiement personnalisés (jusqu'à 30 jours).</p>
+                <div className="stack-xs reveal-up delay-500 group cursor-default">
+                  <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                    <span className="group-hover:scale-125 group-hover:rotate-6 transition-transform duration-300">📄</span> Facturation Flexible
+                  </h4>
+                  <p className="text-text-3 text-sm group-hover:text-white transition-colors duration-300">Relevés de factures clairs et délais de paiement personnalisés (jusqu'à 30 jours).</p>
                 </div>
               </div>
             </div>
 
-            <div className="glass-morphism border border-white/5 p-10 sm:p-12 rounded-[2.5rem] stack-lg shadow-2xl relative">
+            <div className="glass-morphism border border-white/5 p-10 sm:p-12 rounded-[2.5rem] stack-lg shadow-2xl relative reveal-up delay-300 tilt-card animate-float-slow">
               <div className="stack-sm">
                 <h3 className="text-3xl font-display text-white uppercase tracking-wider">Devenir Partenaire</h3>
                 <p className="text-text-3 font-light text-sm">

@@ -4,8 +4,8 @@ import { useEffect } from "react";
 
 export function ScrollReveal() {
   useEffect(() => {
-    // Find all elements with class .text-reveal
-    const elements = document.querySelectorAll(".text-reveal");
+    // Find all elements with class .text-reveal or .reveal-up
+    const elements = document.querySelectorAll(".text-reveal, .reveal-up");
     if (elements.length === 0) return;
 
     const observer = new IntersectionObserver(

@@ -68,12 +68,15 @@ export interface Order {
 
 export interface Invoice {
   id: string;
-  proId: string;
+  proId?: string | null;
+  customerId?: string | null;
   orderId: string;
   issueDate: string;
   dueDate: string;
   amount: number;
   status: InvoiceStatus;
+  pro?: Pro | null;
+  customer?: Customer | null;
 }
 
 export interface Invitation {

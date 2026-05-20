@@ -99,11 +99,12 @@ create index if not exists idx_orders_pro on public.orders(pro_id);
 create index if not exists idx_orders_customer on public.orders(customer_id);
 create index if not exists idx_orders_status on public.orders(status);
 
--- Invoices (pros only)
+-- Invoices (pros + B2C customers)
 create table if not exists public.invoices (
   id              uuid primary key default uuid_generate_v4(),
   reference       text unique not null,                        -- e.g. INV-2026-0001
-  pro_id          uuid not null references public.pros(id) on delete cascade,
+  pro_id          uuid references public.pros(id) on delete cascade,
+  customer_id     uuid references public.customers(id) on delete cascade,
   order_id        uuid references public.orders(id) on delete set null,
   issue_date      date not null default current_date,
   due_date        date not null,
@@ -112,6 +113,7 @@ create table if not exists public.invoices (
   created_at      timestamptz not null default now()
 );
 create index if not exists idx_invoices_pro on public.invoices(pro_id);
+create index if not exists idx_invoices_customer on public.invoices(customer_id);
 create index if not exists idx_invoices_status on public.invoices(status);
 
 -- Pro invitations (admin → pro onboarding)
@@ -153,9 +155,10 @@ create policy "products_read_public" on public.products
 
 -- ---------- Helpful views ----------
 create or replace view public.v_invoice_with_pro as
-  select i.*, p.company as pro_company, p.contact_name as pro_contact
+  select i.*, p.company as pro_company, p.contact_name as pro_contact, c.name as customer_name
   from public.invoices i
-  join public.pros p on p.id = i.pro_id;
+  left join public.pros p on p.id = i.pro_id
+  left join public.customers c on c.id = i.customer_id;
 
 -- ---------- Professional Onboarding Requests ----------
 create table if not exists public.pro_requests (

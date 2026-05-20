@@ -77,6 +77,7 @@ function rowToInvoice(r: any): Invoice {
   return {
     id: r.reference,
     proId: r.pro_id,
+    customerId: r.customer_id,
     orderId: r.order_id,
     issueDate: r.issue_date,
     dueDate: r.due_date,
@@ -179,8 +180,15 @@ export async function getOrderForCustomer(customerId: string, reference: string)
 // ---------- Invoices ----------
 export async function listInvoices() {
   const sb = createAdminClient();
-  const { data } = await sb.from("invoices").select("*").order("issue_date", { ascending: false });
-  return (data ?? []).map(rowToInvoice);
+  const { data } = await sb
+    .from("invoices")
+    .select("*, pros(*), customers(*)")
+    .order("issue_date", { ascending: false });
+  return (data ?? []).map((r: any) => ({
+    ...rowToInvoice(r),
+    pro: r.pros ? rowToPro(r.pros) : null,
+    customer: r.customers ? rowToCustomer(r.customers) : null,
+  }));
 }
 
 export async function listInvoicesForPro(proId: string) {
@@ -197,7 +205,7 @@ export async function getInvoiceByReference(reference: string) {
   const sb = createAdminClient();
   const { data } = await sb
     .from("invoices")
-    .select("*, pros(*)")
+    .select("*, pros(*), customers(*)")
     .eq("reference", reference)
     .maybeSingle();
   if (!data) return null;
@@ -213,6 +221,7 @@ export async function getInvoiceByReference(reference: string) {
   return {
     ...rowToInvoice(data),
     pro: data.pros ? rowToPro(data.pros) : null,
+    customer: data.customers ? rowToCustomer(data.customers) : null,
     order: orderData,
   };
 }

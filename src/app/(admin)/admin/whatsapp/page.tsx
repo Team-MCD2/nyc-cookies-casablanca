@@ -24,13 +24,11 @@ export default function WhatsAppAdminPage() {
   const [method, setMethod] = useState<"qr" | "pairing_code">("pairing_code");
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Define bot URL based on env or localhost
-  const botUrl = process.env.NEXT_PUBLIC_WHATSAPP_BOT_URL || "http://localhost:3001";
 
   async function fetchStatus(showToast = false) {
     try {
       setLoading(true);
-      const res = await fetch(`${botUrl}/api/status`);
+      const res = await fetch("/api/admin/whatsapp");
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
@@ -42,7 +40,7 @@ export default function WhatsAppAdminPage() {
         setStatus(null);
       }
     } catch (error) {
-      console.error("Bot is not reachable", error);
+      console.error("Bot is not reachable via proxy", error);
       setStatus(null);
     } finally {
       setLoading(false);
@@ -67,7 +65,7 @@ export default function WhatsAppAdminPage() {
     }
     setActionLoading(true);
     try {
-      const res = await fetch(`${botUrl}/api/start`, {
+      const res = await fetch("/api/admin/whatsapp?action=start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ method, phone })
@@ -89,8 +87,12 @@ export default function WhatsAppAdminPage() {
   async function logoutBot() {
     setActionLoading(true);
     try {
-      await fetch(`${botUrl}/api/logout`, { method: "POST" });
-      toast({ title: "Déconnecté", message: "Le bot a été réinitialisé.", type: "success" });
+      const res = await fetch("/api/admin/whatsapp?action=logout", { method: "POST" });
+      if (res.ok) {
+        toast({ title: "Déconnecté", message: "Le bot a été réinitialisé.", type: "success" });
+      } else {
+        toast({ title: "Erreur", message: "Impossible de se déconnecter.", type: "danger" });
+      }
       await fetchStatus();
     } catch (e) {
       toast({ title: "Erreur", message: "Impossible de se déconnecter.", type: "danger" });
@@ -102,7 +104,7 @@ export default function WhatsAppAdminPage() {
   async function saveCronTime() {
     setActionLoading(true);
     try {
-      const res = await fetch(`${botUrl}/api/set-cron`, {
+      const res = await fetch("/api/admin/whatsapp?action=set-cron", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ time: cronTimeInput })
@@ -144,7 +146,7 @@ export default function WhatsAppAdminPage() {
           
           {!loading && !status && (
             <div className="text-accent bg-accent/10 p-4 rounded-md text-sm">
-              Impossible de contacter le serveur du bot ({botUrl}). Assurez-vous qu'il est en cours d'exécution.
+              Impossible de contacter le serveur du bot. Assurez-vous qu'il est en cours d'exécution.
             </div>
           )}
 

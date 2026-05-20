@@ -157,6 +157,20 @@
   background: radial-gradient(circle at center, rgba(213, 74, 42, 0.15) 0%, transparent 70%);
 }
 
+.reveal-up {
+  opacity: 0;
+  transform: translateY(30px) scale(0.95);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-up.revealed {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.delay-100 { transition-delay: 100ms; }
+.delay-200 { transition-delay: 200ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
+
 /* =========================================================================
    Reusable composite classes (mirrors prototype's most-used patterns)
    ========================================================================= */
