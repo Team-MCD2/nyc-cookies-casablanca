@@ -109,6 +109,33 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
 
   revalidatePath("/admin/orders");
   revalidatePath(isPro ? "/pro/orders" : "/shop");
+
+  // Envoyer la notification WhatsApp à l'administrateur
+  try {
+    const adminPhone = process.env.ADMIN_PHONE || process.env.NEXT_PUBLIC_BRAND_PHONE;
+    const botUrl = process.env.NEXT_PUBLIC_WHATSAPP_BOT_URL;
+    const apiSecret = process.env.SITE_API_SECRET;
+
+    if (adminPhone && botUrl && apiSecret) {
+      const clientType = isPro ? "Professionnel 💼" : "Particulier 🍪";
+      const message = `🔔 *NYC Cookies Casablanca*\n\nUn nouveau client (${clientType}) a passé une commande !\n\n*Référence :* ${reference}\n*Montant :* ${total} MAD\n\nRDV sur votre espace d'administration pour la traiter.`;
+      
+      fetch(`${botUrl}/api/send-message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiSecret}`
+        },
+        body: JSON.stringify({
+          phone: adminPhone,
+          message: message
+        })
+      }).catch(err => console.error("Error sending order notification to WhatsApp Bot:", err));
+    }
+  } catch (err) {
+    console.error("Failed to send WhatsApp order notification:", err);
+  }
+
   return { reference, total };
 }
 
