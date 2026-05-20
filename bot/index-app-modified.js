@@ -157,6 +157,46 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
 
         sock.ev.on('creds.update', saveCreds);
 
+        // Handle incoming messages
+        sock.ev.on('messages.upsert', async (m) => {
+            console.log('[BOT] Nouveaux messages reçus');
+            
+            for (const msg of m.messages) {
+                try {
+                    if (!msg.message) continue; // Ignore les messages vides
+                    
+                    const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+                    if (!text) continue;
+                    
+                    const sender = msg.key.remoteJid;
+                    const isFromMe = msg.key.fromMe;
+                    
+                    if (isFromMe) continue; // Ignore nos propres messages
+                    
+                    console.log(`[BOT] Message de ${sender}: ${text}`);
+                    
+                    // Parse commands
+                    if (text.startsWith('.ping')) {
+                        console.log(`[BOT] Commande .ping reçue de ${sender}`);
+                        await sock.sendMessage(sender, { text: '🤖 Bot est actif et connecté! Pong! ✅' });
+                    } else if (text.startsWith('.creneau')) {
+                        const parts = text.split(' ');
+                        if (parts.length === 2 && /^\d{2}:\d{2}$/.test(parts[1])) {
+                            botConfig.cronTime = parts[1];
+                            saveConfig();
+                            setupCron();
+                            console.log(`[BOT] Créneau changé à ${botConfig.cronTime} par ${sender}`);
+                            await sock.sendMessage(sender, { text: `✅ Créneau d'envoi changé à ${botConfig.cronTime}` });
+                        } else {
+                            await sock.sendMessage(sender, { text: '❌ Format invalide. Utilisez: .creneau HH:mm\nExemple: .creneau 15:00' });
+                        }
+                    }
+                } catch (err) {
+                    console.error('[BOT] Erreur lors du traitement du message:', err);
+                }
+            }
+        });
+
     } catch (error) {
         console.error("[BOT] Erreur critique lors de l'initialisation de la connexion :", error);
         // Retenter après un délai
