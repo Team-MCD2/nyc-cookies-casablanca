@@ -25,6 +25,21 @@ const CONFIG = {
 
 console.log("=== NYC COOKIES BOT DEPLOYMENT MANAGER ===");
 
+// 0. Auto-detect public IP for the user
+try {
+    const https = require('https');
+    https.get('https://api.ipify.org', (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+            const ip = data.trim();
+            console.log(`\n🌍 ==================================================`);
+            console.log(`🌍 VOTRE URL DE BOT POUR VERCEL EST : http://${ip}:${CONFIG.PORT}`);
+            console.log(`🌍 ==================================================\n`);
+        });
+    }).on('error', () => {});
+} catch (e) {}
+
 function runCommand(cmd, cwd = __dirname) {
     console.log(`Running: ${cmd}`);
     try {
