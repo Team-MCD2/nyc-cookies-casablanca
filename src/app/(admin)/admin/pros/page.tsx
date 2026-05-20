@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/ui/misc";
-import { listPros, listInvitations } from "@/lib/queries";
+import { listPros, listInvitations, listProRequests } from "@/lib/queries";
 import { syncProsFromClerk } from "@/lib/auth";
 import { ProsClient } from "./pros-client";
 
@@ -10,9 +10,10 @@ export default async function AdminProsPage() {
   // Idempotent — safe to run on every page render.
   await syncProsFromClerk().catch(() => undefined);
 
-  const [pros, invitations] = await Promise.all([
+  const [pros, invitations, proRequests] = await Promise.all([
     listPros().catch(() => []),
     listInvitations().catch(() => []),
+    listProRequests().catch(() => []),
   ]);
   const pendingInvites = invitations.filter((i) => !i.used);
 
@@ -22,12 +23,12 @@ export default async function AdminProsPage() {
         title="Clients pros"
         eyebrow="Clientèle B2B"
         subtitle={
-          pros.length === 0 && pendingInvites.length === 0
+          pros.length === 0 && pendingInvites.length === 0 && proRequests.length === 0
             ? "Invitez vos premiers partenaires pros."
-            : `${pros.length} pro${pros.length > 1 ? "s" : ""} · ${pendingInvites.length} invitation${pendingInvites.length > 1 ? "s" : ""} en attente.`
+            : `${pros.length} pro${pros.length > 1 ? "s" : ""} · ${pendingInvites.length} invitation${pendingInvites.length > 1 ? "s" : ""} en attente · ${proRequests.filter(r => r.status === "pending").length} demande(s) en attente.`
         }
       />
-      <ProsClient pros={pros} invitations={pendingInvites} />
+      <ProsClient pros={pros} invitations={pendingInvites} proRequests={proRequests} />
     </>
   );
 }

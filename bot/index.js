@@ -230,6 +230,32 @@ app.post('/api/set-cron', (req, res) => {
     res.json({ success: true, message: "Cron updated successfully", time: botConfig.cronTime });
 });
 
+app.post('/api/send-message', async (req, res) => {
+    const authHeader = req.headers['authorization'];
+    if (authHeader !== `Bearer ${SITE_API_SECRET}`) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { phone, message } = req.body;
+    if (!phone || !message) {
+        return res.status(400).json({ error: "Phone and message parameters are required" });
+    }
+
+    if (!isConnected || !sock) {
+        return res.status(503).json({ error: "WhatsApp Bot is not connected" });
+    }
+
+    try {
+        const cleanNumber = phone.replace(/\D/g, '');
+        const jid = `${cleanNumber}@s.whatsapp.net`;
+        await sock.sendMessage(jid, { text: message });
+        res.json({ success: true, message: "Message sent successfully" });
+    } catch (err) {
+        console.error("Error sending message via API:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`WhatsApp Bot API running on port ${PORT}`);

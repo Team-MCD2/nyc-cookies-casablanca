@@ -197,6 +197,79 @@ export async function deleteInvitation(token: string) {
   revalidatePath("/admin/pros");
 }
 
+// ---------- Pro Requests (public / admin) ----------
+const proRequestSchema = z.object({
+  company: z.string().min(1, "Nom de la société requis"),
+  contactName: z.string().min(1, "Nom de contact requis"),
+  email: z.string().email("Email invalide"),
+  phone: z.string().min(1, "Numéro de téléphone requis"),
+  message: z.string().optional(),
+});
+
+export async function submitProRequest(input: z.input<typeof proRequestSchema>) {
+  const data = proRequestSchema.parse(input);
+  const sb = createAdminClient();
+
+  const { error } = await sb.from("pro_requests").insert({
+    company: data.company,
+    contact_name: data.contactName,
+    email: data.email,
+    phone: data.phone,
+    message: data.message ?? null,
+    status: "pending",
+  });
+  if (error) throw error;
+
+  // Notifier l'administrateur par WhatsApp via le Bot
+  try {
+    const adminPhone = process.env.ADMIN_PHONE || process.env.NEXT_PUBLIC_BRAND_PHONE;
+    const botUrl = process.env.NEXT_PUBLIC_WHATSAPP_BOT_URL;
+    const apiSecret = process.env.SITE_API_SECRET;
+
+    if (adminPhone && botUrl && apiSecret) {
+      const message = `💼 *NYC Cookies Casablanca*\n\nNouvelle demande de compte Pro en attente ! \n\n*Société :* ${data.company}\n*Contact :* ${data.contactName}\n*Email :* ${data.email}\n*Téléphone :* ${data.phone}\n${data.message ? `*Message :* ${data.message}` : ""}\n\nConnectez-vous sur votre tableau de bord pour valider sa demande et générer son lien unique d'onboarding.`;
+      
+      fetch(`${botUrl}/api/send-message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiSecret}`
+        },
+        body: JSON.stringify({
+          phone: adminPhone,
+          message: message
+        })
+      }).catch(err => console.error("Error sending pro request notification to WhatsApp Bot:", err));
+    }
+  } catch (err) {
+    console.error("Failed to send WhatsApp pro request notification:", err);
+  }
+
+  revalidatePath("/admin/pros");
+  return { success: true };
+}
+
+export async function updateProRequestStatus(id: string, status: "pending" | "approved" | "rejected") {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+
+  const { error } = await sb.from("pro_requests").update({ status }).eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/admin/pros");
+}
+
+export async function deleteProRequest(id: string) {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+
+  const { error } = await sb.from("pro_requests").delete().eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/admin/pros");
+}
+
+
 // ---------- Customers / Pros (admin) ----------
 export async function deleteCustomer(id: string) {
   await requireRole(["admin"]);

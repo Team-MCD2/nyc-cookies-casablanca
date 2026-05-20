@@ -13,17 +13,18 @@ import { InputGroup } from "@/components/ui/input";
 import { ProStatusBadge } from "@/components/status-badge";
 import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
-import { deletePro, deleteInvitation } from "@/lib/actions";
+import { deletePro, deleteInvitation, updateProRequestStatus, deleteProRequest, createInvitation } from "@/lib/actions";
 import { money, formatDate } from "@/lib/utils";
-import type { Pro, Invitation } from "@/lib/types";
+import type { Pro, Invitation, ProRequest } from "@/lib/types";
 import { InviteProForm } from "./invite-form";
 
 interface Props {
   pros: Pro[];
   invitations: Invitation[];
+  proRequests?: ProRequest[];
 }
 
-export function ProsClient({ pros, invitations }: Props) {
+export function ProsClient({ pros, invitations, proRequests }: Props) {
   const [query, setQuery] = useState("");
   const [confirmDeletePro, setConfirmDeletePro] = useState<Pro | null>(null);
 
@@ -126,6 +127,19 @@ export function ProsClient({ pros, invitations }: Props) {
         </Card>
       )}
 
+      {proRequests && proRequests.filter(r => r.status === "pending").length > 0 && (
+        <Card className="mb-6">
+          <h3 className="mb-4 font-display text-[1.1rem] tracking-[0.04em] text-accent">
+            Demandes d'inscription en attente ({proRequests.filter(r => r.status === "pending").length})
+          </h3>
+          <ul className="stack-sm">
+            {proRequests.filter(r => r.status === "pending").map((req) => (
+              <ProRequestRow key={req.id} request={req} />
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {invitations.length > 0 && (
         <Card className="mt-6">
           <h3 className="mb-4 font-display text-[1.1rem] tracking-[0.04em]">
@@ -141,6 +155,111 @@ export function ProsClient({ pros, invitations }: Props) {
 
       <DeleteProModal pro={confirmDeletePro} onClose={() => setConfirmDeletePro(null)} />
     </>
+  );
+}
+
+function ProRequestRow({ request }: { request: ProRequest }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+
+  function approve() {
+    start(async () => {
+      try {
+        const { token } = await createInvitation({
+          company: request.company,
+          contactName: request.contactName,
+          email: request.email,
+          phone: request.phone,
+        });
+        await updateProRequestStatus(request.id, "approved");
+        
+        const link = `${window.location.origin}/pro-invite?token=${token}`;
+        setGeneratedLink(link);
+        
+        toast({ 
+          title: "Demande approuvée ✅", 
+          message: "L'invitation a été générée avec succès.", 
+          type: "success" 
+        });
+        
+        router.refresh();
+      } catch (err) {
+        toast({
+          title: "Erreur",
+          message: err instanceof Error ? err.message : "Échec de l'approbation.",
+          type: "danger",
+        });
+      }
+    });
+  }
+
+  function reject() {
+    start(async () => {
+      try {
+        await updateProRequestStatus(request.id, "rejected");
+        toast({ title: "Demande refusée", message: request.company, type: "default" });
+        router.refresh();
+      } catch (err) {
+        toast({
+          title: "Erreur",
+          message: err instanceof Error ? err.message : "Échec du refus.",
+          type: "danger",
+        });
+      }
+    });
+  }
+
+  return (
+    <li className="rounded-md border border-border bg-surface-2 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-white">{request.company}</span>
+            <Badge variant="warning" className="text-[0.7rem]">En attente</Badge>
+          </div>
+          <div className="mt-1 text-[0.85rem] text-text-3">
+            Contact : <strong className="text-text-2">{request.contactName}</strong> · Email : <span className="text-text-2">{request.email}</span> · Tél : <span className="text-text-2">{request.phone}</span>
+          </div>
+          {request.message && (
+            <div className="mt-2 rounded bg-surface-1 p-2 text-xs italic text-text-3">
+              "{request.message}"
+            </div>
+          )}
+          
+          {generatedLink && (
+            <div className="mt-3">
+              <span className="text-xs text-accent font-bold">Lien d'onboarding généré :</span>
+              <div className="mt-1 flex items-center gap-2">
+                <code className="block break-all rounded border border-dashed border-accent/40 bg-surface-1 p-2 font-mono text-[0.75rem] text-accent flex-1">
+                  {generatedLink}
+                </code>
+                <Button 
+                  size="sm" 
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(generatedLink);
+                    toast({ title: "Lien copié !", type: "success" });
+                  }}
+                >
+                  Copier
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {!generatedLink && (
+          <div className="flex shrink-0 items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={reject} disabled={pending} className="text-danger hover:bg-danger-soft">
+              Refuser
+            </Button>
+            <Button size="sm" onClick={approve} disabled={pending}>
+              Générer invitation
+            </Button>
+          </div>
+        )}
+      </div>
+    </li>
   );
 }
 

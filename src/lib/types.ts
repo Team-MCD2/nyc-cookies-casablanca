@@ -85,6 +85,17 @@ export interface Invitation {
   used: boolean;
 }
 
+export interface ProRequest {
+  id: string;
+  company: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  message?: string | null;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
 /** Lightweight Clerk user view used by the admin users management page. */
 export interface ClerkUserSummary {
   id: string;

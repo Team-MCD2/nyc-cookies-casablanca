@@ -73,7 +73,7 @@ export default async function LandingPage() {
                   Commander <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                 </Button>
               </Link>
-              <Link href="/pro">
+              <Link href="#pro">
                 <Button variant="outline" size="lg" className="h-16 px-12 text-xl rounded-full border-white/20 hover:border-accent hover:bg-accent/5 transition-all">
                   Espace Pro
                 </Button>
@@ -175,12 +175,73 @@ export default async function LandingPage() {
                   Nos recettes sont le fruit d'un équilibre parfait. Un extérieur doré qui croustille sous la dent, libérant un cœur généreux, fondant et irrésistiblement gourmand.
                 </p>
               </div>
-              <Link href="/pro" className="group">
+              <Link href="/devenir-pro" className="group">
                 <div className="flex items-center gap-4 text-accent uppercase tracking-widest font-bold text-sm">
-                  <span>Découvrir notre espace pro</span>
+                  <span>Rejoindre le réseau professionnel</span>
                   <div className="h-[1px] w-12 bg-accent group-hover:w-20 transition-all" />
                 </div>
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="section-divider" />
+
+      {/* B2B / Professional Program Section */}
+      <section className="py-32 bg-gradient-to-b from-surface-1 to-black relative overflow-hidden" id="pro">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[160px] pointer-events-none" />
+        <div className="container relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <div className="stack-lg">
+              <div className="stack-sm">
+                <Eyebrow>Offre B2B & Distribution</Eyebrow>
+                <h2 className="text-5xl md:text-7xl mt-4 text-reveal cursor-default">
+                  NYC Cookies pour votre <span className="italic text-accent">établissement</span>
+                </h2>
+              </div>
+              <p className="text-lg md:text-xl text-text-2 font-light leading-relaxed">
+                Rejoignez les meilleurs cafés, restaurants et hôtels de Casablanca qui font confiance à NYC Cookies pour ravir leur clientèle.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
+                <div className="stack-xs">
+                  <h4 className="text-white font-bold text-lg">💡 Commandes Simples</h4>
+                  <p className="text-text-3 text-sm">Passez vos commandes professionnelles en 2 clics sur notre portail dédié.</p>
+                </div>
+                <div className="stack-xs">
+                  <h4 className="text-white font-bold text-lg">💬 Rappels WhatsApp</h4>
+                  <p className="text-text-3 text-sm">Notification et rappel automatique tous les soirs sur WhatsApp pour vos commandes du lendemain.</p>
+                </div>
+                <div className="stack-xs">
+                  <h4 className="text-white font-bold text-lg">🚚 Livraison Matinale</h4>
+                  <p className="text-text-3 text-sm">Livraison directe dans votre point de vente avant l'ouverture avec respect de la chaîne du frais.</p>
+                </div>
+                <div className="stack-xs">
+                  <h4 className="text-white font-bold text-lg">📄 Facturation Flexible</h4>
+                  <p className="text-text-3 text-sm">Relevés de factures clairs et délais de paiement personnalisés (jusqu'à 30 jours).</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-morphism border border-white/5 p-10 sm:p-12 rounded-[2.5rem] stack-lg shadow-2xl relative">
+              <div className="stack-sm">
+                <h3 className="text-3xl font-display text-white uppercase tracking-wider">Devenir Partenaire</h3>
+                <p className="text-text-3 font-light text-sm">
+                  Soumettez votre demande d'onboarding en quelques instants. Notre équipe l'étudiera sous 24h.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Link href="/devenir-pro" className="flex-1">
+                  <Button size="lg" className="w-full h-16 rounded-full shine-effect uppercase tracking-wider text-sm font-bold">
+                    Déposer une demande
+                  </Button>
+                </Link>
+                <Link href="/pro" className="flex-1">
+                  <Button size="lg" variant="outline" className="w-full h-16 rounded-full border-white/10 hover:border-accent hover:bg-accent/5 transition-all uppercase tracking-wider text-sm font-bold">
+                    Espace Pro existant
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

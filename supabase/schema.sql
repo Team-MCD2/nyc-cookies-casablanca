@@ -17,6 +17,7 @@ drop table if exists public.orders      cascade;
 drop table if exists public.pros        cascade;
 drop table if exists public.customers   cascade;
 drop table if exists public.products    cascade;
+drop table if exists public.pro_requests cascade;
 
 drop type if exists product_category cascade;
 drop type if exists order_status     cascade;
@@ -155,3 +156,19 @@ create or replace view public.v_invoice_with_pro as
   select i.*, p.company as pro_company, p.contact_name as pro_contact
   from public.invoices i
   join public.pros p on p.id = i.pro_id;
+
+-- ---------- Professional Onboarding Requests ----------
+create table if not exists public.pro_requests (
+  id            uuid primary key default uuid_generate_v4(),
+  company       text not null,
+  contact_name  text not null,
+  email         text not null,
+  phone         text not null,
+  message       text,
+  status        text not null default 'pending', -- pending, approved, rejected
+  created_at    timestamptz not null default now()
+);
+
+alter table public.pro_requests enable row level security;
+create index if not exists idx_pro_requests_status on public.pro_requests(status);
+

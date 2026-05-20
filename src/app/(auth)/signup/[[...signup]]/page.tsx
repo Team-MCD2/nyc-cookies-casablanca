@@ -30,9 +30,12 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="mt-6 flex flex-col sm:flex-row gap-3">
+      <div className="mt-8 flex flex-col gap-3">
+        <Link href="/devenir-pro" className="w-full">
+          <Button block className="h-12 text-sm font-bold uppercase tracking-wider">Déposer une demande de compte</Button>
+        </Link>
         <Link href="/login" className="w-full">
-          <Button block variant="outline">Se connecter à un compte existant</Button>
+          <Button block variant="outline" className="h-12">Se connecter à un compte existant</Button>
         </Link>
       </div>
     </div>

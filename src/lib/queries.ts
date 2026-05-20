@@ -7,6 +7,7 @@ import type {
   Order,
   Invoice,
   Invitation,
+  ProRequest,
   ProductCategory,
   OrderStatus,
   Role,
@@ -228,6 +229,27 @@ export async function findInvitation(token: string) {
   const { data } = await sb.from("invitations").select("*").eq("token", token).maybeSingle();
   return data ? rowToInvitation(data) : null;
 }
+
+// ---------- Pro Requests ----------
+function rowToProRequest(r: any): ProRequest {
+  return {
+    id: r.id,
+    company: r.company,
+    contactName: r.contact_name,
+    email: r.email,
+    phone: r.phone,
+    message: r.message,
+    status: r.status,
+    createdAt: r.created_at?.slice(0, 10) ?? "",
+  };
+}
+
+export async function listProRequests() {
+  const sb = createAdminClient();
+  const { data } = await sb.from("pro_requests").select("*").order("created_at", { ascending: false });
+  return (data ?? []).map(rowToProRequest);
+}
+
 
 // ---------- Clerk users (admin only) ----------
 const VALID_ROLES = ["admin", "pro", "b2c"] as const;
