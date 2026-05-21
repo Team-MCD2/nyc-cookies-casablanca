@@ -22,6 +22,15 @@ Plateforme de gestion **NYC Cookies Casablanca** (B2C + B2B Pros) en **Next.js 1
 
 ---
 
+## Guides opérationnels
+
+| Guide | Contenu |
+|-------|---------|
+| [docs/guide-whatsapp-bot.md](docs/guide-whatsapp-bot.md) | Connexion WhatsApp, changer le numéro du bot, autoriser d'autres admins |
+| [docs/guide-supabase-storage-product-images.md](docs/guide-supabase-storage-product-images.md) | Créer le bucket `product-images` pour les photos produits |
+
+---
+
 ## 2. Setup local (5 min)
 
 ### 2.1. Installation

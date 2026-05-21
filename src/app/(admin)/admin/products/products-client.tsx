@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { ImagePlus, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import {
 import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { upsertProduct, deleteProduct } from "@/lib/actions";
-import { money } from "@/lib/utils";
+import { money, getProductImage } from "@/lib/utils";
 import type { Product, ProductCategory } from "@/lib/types";
 
 const CATEGORY_LABEL: Record<ProductCategory, string> = {
@@ -186,8 +187,33 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(product?.imageUrl ?? null);
+  const [productName, setProductName] = useState(product?.name ?? "");
+  const [category, setCategory] = useState<ProductCategory>(product?.category ?? "cookie");
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isEdit = !!product;
+
+  useEffect(() => {
+    if (!open) return;
+    setImageUrl(product?.imageUrl ?? null);
+    setProductName(product?.name ?? "");
+    setCategory(product?.category ?? "cookie");
+    setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [open, product]);
+
+  const previewUrl =
+    imageUrl ??
+    (productName.trim()
+      ? getProductImage({ name: productName, category, imageUrl: null })
+      : null);
+
+  const usingDefaultPreview = !imageUrl && !!previewUrl;
+
+  function clearImage() {
+    setImageUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   async function onImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -204,6 +230,7 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
       toast({ title: "Image uploadée", type: "success" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload échoué");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } finally {
       setUploading(false);
     }
@@ -262,18 +289,79 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
         )}
 
         <Field>
-          <Label htmlFor="image">Image (optionnel)</Label>
-          <Input
+          <Label>Image du produit (optionnel)</Label>
+          <input
+            ref={fileInputRef}
             id="image"
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={onImageChange}
             disabled={uploading || pending}
+            className="sr-only"
           />
+
+          {previewUrl ? (
+            <div className="relative mt-2 overflow-hidden rounded-lg border border-border bg-surface-2">
+              <div className="relative aspect-[4/3] w-full max-h-48">
+                <Image
+                  src={previewUrl}
+                  alt="Aperçu produit"
+                  fill
+                  className="object-cover"
+                  unoptimized={previewUrl.startsWith("http")}
+                />
+              </div>
+              {usingDefaultPreview && (
+                <span className="absolute left-2 top-2 rounded bg-surface/90 px-2 py-0.5 text-[0.7rem] text-text-3">
+                  Aperçu par défaut (nom)
+                </span>
+              )}
+              {imageUrl && (
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  disabled={uploading || pending}
+                  className="absolute right-2 top-2 rounded-full bg-surface p-1.5 text-text-2 shadow hover:bg-danger-soft hover:text-danger"
+                  title="Retirer l'image"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="mt-2 flex aspect-[4/3] max-h-40 items-center justify-center rounded-lg border border-dashed border-border bg-surface-2 text-text-3">
+              <span className="text-sm">Aucune image — aperçu après saisie du nom</span>
+            </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={uploading || pending}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus className="h-4 w-4" />
+              {uploading ? "Envoi…" : imageUrl ? "Changer l'image" : "Choisir une image"}
+            </Button>
+            {imageUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={uploading || pending}
+                onClick={clearImage}
+                className="text-danger hover:bg-danger-soft"
+              >
+                <Trash2 className="h-4 w-4" /> Retirer
+              </Button>
+            )}
+          </div>
           <FieldHelp>
             {imageUrl
-              ? "Image personnalisée sélectionnée. Sinon, l'image par défaut selon le nom est utilisée."
-              : "Sans upload, le mécanisme d'images par défaut (nom du cookie) s'applique."}
+              ? "Image personnalisée. Retirez-la pour revenir à l'image par défaut ou en choisir une autre."
+              : "Sans upload, l'image par défaut selon le nom du cookie s'applique."}
           </FieldHelp>
         </Field>
 
@@ -285,6 +373,7 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
             placeholder="Soho"
             defaultValue={product?.name ?? ""}
             required
+            onChange={(e) => setProductName(e.target.value)}
           />
         </Field>
 
@@ -307,6 +396,7 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
               name="category"
               defaultValue={product?.category ?? "cookie"}
               required
+              onChange={(e) => setCategory(e.target.value as ProductCategory)}
             >
               <option value="cookie">Cookie</option>
               <option value="box">Box</option>
