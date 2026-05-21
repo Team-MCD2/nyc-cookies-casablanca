@@ -15,7 +15,7 @@ export const SITE = {
   lang: "fr",
   phone: process.env.NEXT_PUBLIC_BRAND_PHONE ?? "+212670622380",
   phoneDisplay: "+212 670 622 380",
-  email: process.env.NEXT_PUBLIC_BRAND_EMAIL ?? "hello@nyc-cookies.ma",
+  email: process.env.NEXT_PUBLIC_BRAND_EMAIL ?? "nyccookies.casa@gmail.com",
   address: {
     street: "7 Rue Jounaïd",
     complement: "résidence les Princesses",

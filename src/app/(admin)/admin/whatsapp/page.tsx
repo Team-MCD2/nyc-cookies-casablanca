@@ -82,14 +82,10 @@ export default function WhatsAppAdminPage() {
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(() => {
-      const linking =
-        isConnecting ||
-        status?.connecting ||
-        (status && !status.connected && (status.qr || status.pairingCode));
-      if (linking) fetchStatus(false, true);
+      if (!status?.connected) fetchStatus(false, true);
     }, 2000);
     return () => clearInterval(interval);
-  }, [isConnecting, status?.connected, status?.connecting, status?.qr, status?.pairingCode]);
+  }, [status?.connected]);
 
   useEffect(() => {
     if (status?.connected) {
@@ -269,59 +265,6 @@ export default function WhatsAppAdminPage() {
         subtitle="Gérez l'envoi automatique des rappels de commande aux pros."
       />
 
-      {/* QR Code / Pairing Code Display Section */}
-      {status && !status.connected && (status.connecting || status.qr || status.pairingCode || status.qrError) && (
-        <Card className="flex flex-col gap-6 p-6">
-          <h2 className="font-display text-xl">Codes de Connexion Actifs</h2>
-
-          {status.qrError && !status.qr && !status.pairingCode && (
-            <div className="rounded-md border border-danger/30 bg-danger/10 p-4 text-sm text-text-2">
-              {status.qrError}
-            </div>
-          )}
-
-          {status.connecting && !status.qr && !status.pairingCode && !status.qrError && (
-            <p className="text-text-3 text-sm text-center animate-pulse">
-              Génération du code en cours… (quelques secondes)
-            </p>
-          )}
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Pairing Code */}
-            {status.pairingCode && (
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Smartphone className="h-5 w-5 text-accent" />
-                  <p className="text-text-2 font-medium">Code d'Appairage</p>
-                </div>
-                <p className="text-text-3 text-sm text-center">Entrez ce code sur WhatsApp &gt; Appareils liés &gt; Lier avec numéro :</p>
-                <div className="bg-surface-2 p-6 rounded-xl border border-border-strong text-center w-full">
-                  <span className="font-mono text-4xl font-bold tracking-widest">{status.pairingCode}</span>
-                </div>
-              </div>
-            )}
-
-            {/* QR Code */}
-            {status.qr && (
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5 text-accent" />
-                  <p className="text-text-2 font-medium">Code QR</p>
-                </div>
-                <p className="text-text-3 text-sm text-center">Scannez ce QR code dans WhatsApp &gt; Appareils liés :</p>
-                <div className="bg-white p-4 rounded-xl inline-block border border-border-strong">
-                  <img src={status.qr} alt="QR Code" width={220} height={220} className="rounded-lg" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Button onClick={logoutBot} variant="ghost" className="mx-auto">
-            Annuler
-          </Button>
-        </Card>
-      )}
-
       <Card className="p-6">
         <h2 className="font-display text-xl mb-4">Commandes WhatsApp</h2>
         <p className="text-sm text-text-3 mb-4">
@@ -384,11 +327,57 @@ export default function WhatsAppAdminPage() {
           )}
 
           {status?.qrError && !status.connected && !status.qr && !status.pairingCode && (
-            <p className="text-sm text-danger/90">{status.qrError}</p>
+            <div className="rounded-md border border-danger/30 bg-danger/10 p-4 text-sm text-text-2">
+              {status.qrError}
+            </div>
+          )}
+
+          {status && !status.connected && (status.connecting || isConnecting) && !status.qr && !status.pairingCode && !status.qrError && (
+            <p className="text-text-3 text-sm text-center animate-pulse py-4">
+              Génération du code en cours… (quelques secondes)
+            </p>
+          )}
+
+          {status && !status.connected && (status.pairingCode || status.qr) && (
+            <div className="flex flex-col gap-6">
+              {status.pairingCode && (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="h-5 w-5 text-accent" />
+                    <p className="text-text-2 font-medium">Code d&apos;appairage</p>
+                  </div>
+                  <p className="text-text-3 text-sm text-center">
+                    WhatsApp → Appareils liés → Lier avec numéro de téléphone
+                  </p>
+                  <div className="w-full rounded-xl border border-border-strong bg-surface-2 p-6 text-center">
+                    <span className="font-mono text-3xl font-bold tracking-widest sm:text-4xl">
+                      {status.pairingCode}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {status.qr && (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5 text-accent" />
+                    <p className="text-text-2 font-medium">Code QR</p>
+                  </div>
+                  <p className="text-text-3 text-sm text-center">
+                    WhatsApp → Appareils liés → Scanner le QR
+                  </p>
+                  <div className="inline-block rounded-xl border border-border-strong bg-white p-4">
+                    <img src={status.qr} alt="QR Code WhatsApp" width={220} height={220} className="rounded-lg" />
+                  </div>
+                </div>
+              )}
+              <Button onClick={logoutBot} variant="ghost" disabled={actionLoading}>
+                Annuler la connexion
+              </Button>
+            </div>
           )}
 
           {/* Disconnected State (Ready to connect) */}
-          {status && !status.connected && !status.connecting && !status.qr && !status.pairingCode && (
+          {status && !status.connected && !status.connecting && !isConnecting && !status.qr && !status.pairingCode && (
             <div className="flex flex-col gap-4">
               <div className="flex gap-2">
                 <Button 

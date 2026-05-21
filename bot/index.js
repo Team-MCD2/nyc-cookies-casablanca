@@ -1040,8 +1040,7 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '', options = {}) 
 
                 if (qrExpired) {
                     console.log('[BOT] QR expiré — nouvelle session dans 3s');
-                    currentQrBase64 = null;
-                    pairingCode = null;
+                    if (method === 'qr') currentQrBase64 = null;
                     scheduleReconnect(method, phoneNumber, 3000, { clearAuth: true });
                     return;
                 }
@@ -1180,7 +1179,8 @@ app.post('/api/start', async (req, res) => {
     qrError = null;
 
     const useMethod = method || 'qr';
-    const clearAuthOnStart = useMethod === 'qr' || !hasRegisteredSession();
+    const clearAuthOnStart =
+        useMethod === 'qr' || useMethod === 'pairing_code' || !hasRegisteredSession();
 
     await connectToWhatsApp(useMethod, phone || '', {
         force: true,

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "set-role": "node scripts/set-role.mjs"
+    "set-role": "node scripts/set-role.mjs",
+    "create-admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",

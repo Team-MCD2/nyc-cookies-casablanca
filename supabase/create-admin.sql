@@ -1,0 +1,28 @@
+-- =========================================================================
+--  NYC Cookies — Création du compte admin
+-- =========================================================================
+--
+--  Cette application utilise Clerk pour l'authentification (connexion admin,
+--  pro, B2C). Supabase stocke les données métier (commandes, produits, etc.)
+--  mais ne gère pas les mots de passe des utilisateurs.
+--
+--  Pour créer le compte admin avec l'email et le mot de passe demandés,
+--  exécutez depuis la racine du projet (avec CLERK_SECRET_KEY dans .env.local) :
+--
+--    npm run create-admin
+--
+--  Par défaut :
+--    Email    : nyccookies.casa@gmail.com
+--    Mot de passe : nyc2026
+--    Rôle     : admin  (publicMetadata.role sur Clerk)
+--
+--  Variante personnalisée :
+--    npm run create-admin -- autre@email.com autreMotDePasse
+--
+--  Si le compte existe déjà, le script lui attribue le rôle admin.
+--
+--  Après création : se connecter sur /login puis accéder à /admin/dashboard
+-- =========================================================================
+
+-- Aucune instruction SQL requise pour ce compte (auth = Clerk).
+-- Ce fichier sert de documentation versionnée dans le dossier supabase/.
