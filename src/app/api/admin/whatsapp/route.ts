@@ -16,6 +16,17 @@ async function fetchBotStatus() {
   return res.json();
 }
 
+/** Masque le numéro obligatoire côté dashboard (reste actif sur le bot). */
+function sanitizeForAdmin(data: Record<string, unknown>) {
+  const { mandatoryPhone: _hidden, authorizedPhone: _legacy, ...rest } = data;
+  const additionalPhones = (data.additionalPhones as string[] | undefined) ?? [];
+  return {
+    ...rest,
+    additionalPhones,
+    authorizedPhones: additionalPhones,
+  };
+}
+
 export async function GET(req: Request) {
   const session = await getCurrentSession();
   if (!session || session.role !== "admin") {
@@ -30,14 +41,12 @@ export async function GET(req: Request) {
 
     if (action === "get-authorized-phone") {
       return NextResponse.json({
-        authorizedPhone: data.authorizedPhone ?? "",
-        authorizedPhones: data.authorizedPhones ?? [],
-        mandatoryPhone: data.mandatoryPhone ?? "",
+        authorizedPhones: data.additionalPhones ?? [],
         additionalPhones: data.additionalPhones ?? [],
       });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(sanitizeForAdmin(data));
   } catch (error: unknown) {
     console.error("Error connecting to WhatsApp bot:", error);
     return NextResponse.json({ error: "Bot is unreachable" }, { status: 502 });
@@ -112,7 +121,11 @@ export async function POST(req: Request) {
     }
 
     try {
-      return NextResponse.json(JSON.parse(errorText));
+      const parsed = JSON.parse(errorText);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return NextResponse.json(sanitizeForAdmin(parsed as Record<string, unknown>));
+      }
+      return NextResponse.json(parsed);
     } catch {
       return NextResponse.json({ success: true, message: errorText });
     }
