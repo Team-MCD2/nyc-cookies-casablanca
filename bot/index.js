@@ -79,6 +79,7 @@ function getStatusPhonesPayload() {
         additionalPhones: botConfig.authorizedPhones || [],
         authorizedPhones: getAllAuthorizedPhones(),
         authorizedPhone: getAllAuthorizedPhones().join(', '),
+        cronTimezone: CRON_TIMEZONE,
     };
 }
 
@@ -188,6 +189,8 @@ function verifyApiSecret(req, res) {
 const SITE_API_SECRET = process.env.SITE_API_SECRET || "my-super-secret";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 const WA_MAX_LEN = 3800;
+/** Fuseau horaire des rappels (.creneau) — Maroc */
+const CRON_TIMEZONE = process.env.CRON_TIMEZONE || 'Africa/Casablanca';
 
 async function fetchProsFromApi(activeOnly = false) {
     const fetch = (await import('node-fetch')).default;
@@ -259,7 +262,7 @@ function getMenuText() {
         '• `.ping` — Tester la connexion',
         '• `.pro` — Liste des clients pro (numéros)',
         '• `.prosend NUMERO : Message` — Message personnalisé à un pro',
-        '• `.creneau HH:mm` — Heure des rappels automatiques',
+        `• \`.creneau HH:mm\` — Rappels auto (heure Maroc, ${CRON_TIMEZONE})`,
         '• `.authorise NUMERO` — Autoriser un numéro admin',
         '• `.unauthorise NUMERO` — Retirer l\'autorisation d\'un numéro',
         '',
@@ -426,7 +429,9 @@ async function handleIncomingMessages(m) {
                     botConfig.cronTime = parts[1];
                     saveConfig();
                     setupCron();
-                    await sock.sendMessage(sender, { text: `✅ Créneau d'envoi changé à ${botConfig.cronTime}` });
+                    await sock.sendMessage(sender, {
+                        text: `✅ Créneau d'envoi : ${botConfig.cronTime} (heure du Maroc — ${CRON_TIMEZONE})`,
+                    });
                 } else {
                     await sock.sendMessage(sender, { text: '❌ Format invalide. Utilisez: .creneau HH:mm\nExemple: .creneau 15:00' });
                 }
@@ -613,10 +618,11 @@ function setupCron() {
     const [hour, minute] = botConfig.cronTime.split(':');
     const cronExpression = `${minute} ${hour} * * *`;
 
-    console.log(`Setting up cron job to run at ${botConfig.cronTime} (${cronExpression})`);
+    console.log(`[CRON] Rappels planifiés à ${botConfig.cronTime} (${CRON_TIMEZONE}) — expression: ${cronExpression}`);
 
     cronJob = cron.schedule(cronExpression, async () => {
-        console.log(`[CRON] Triggered at ${new Date().toISOString()}`);
+        const nowMa = new Date().toLocaleString('fr-MA', { timeZone: CRON_TIMEZONE });
+        console.log(`[CRON] Déclenché à ${nowMa} (${CRON_TIMEZONE})`);
         if (!isConnected || !sock) {
             console.log("[CRON] Bot is not connected. Skipping.");
             return;
@@ -644,7 +650,7 @@ function setupCron() {
         } catch (err) {
             console.error("[CRON] Error during cron execution", err);
         }
-    });
+    }, { timezone: CRON_TIMEZONE });
 }
 
 setTimeout(() => {
@@ -717,7 +723,12 @@ app.post('/api/set-cron', (req, res) => {
     saveConfig();
     setupCron();
 
-    res.json({ success: true, message: "Cron updated successfully", time: botConfig.cronTime });
+    res.json({
+        success: true,
+        message: "Cron updated successfully",
+        time: botConfig.cronTime,
+        cronTimezone: CRON_TIMEZONE,
+    });
 });
 
 app.post('/api/set-authorized-phone', (req, res) => {

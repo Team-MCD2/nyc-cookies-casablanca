@@ -14,10 +14,21 @@ type BotStatus = {
   qr: string | null;
   pairingCode: string | null;
   cronTime: string;
+  cronTimezone?: string;
   additionalPhones?: string[];
   authorizedPhones?: string[];
   authorizedPhone?: string;
 };
+
+const BOT_COMMANDS = [
+  { cmd: ".menu", desc: "Menu des commandes (avec logo NYC)" },
+  { cmd: ".ping", desc: "Tester la connexion du bot" },
+  { cmd: ".authorise NUMERO", desc: "Autoriser un numéro admin (aussi .authorise(NUMERO))" },
+  { cmd: ".unauthorise NUMERO", desc: "Retirer l'autorisation d'un numéro" },
+  { cmd: ".pro", desc: "Liste des clients pro avec numéros" },
+  { cmd: ".prosend NUMERO : Message", desc: "Envoyer un message personnalisé à un pro" },
+  { cmd: ".creneau HH:mm", desc: "Heure des rappels automatiques (fuseau Maroc)" },
+] as const;
 
 export default function WhatsAppAdminPage() {
   const [status, setStatus] = useState<BotStatus | null>(null);
@@ -30,9 +41,9 @@ export default function WhatsAppAdminPage() {
   const [isConnecting, setIsConnecting] = useState(false);
 
 
-  async function fetchStatus(showToast = false) {
+  async function fetchStatus(showToast = false, silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch("/api/admin/whatsapp");
       if (res.ok) {
         const data = await res.json();
@@ -40,7 +51,6 @@ export default function WhatsAppAdminPage() {
         if (!cronTimeInput && data.cronTime) {
           setCronTimeInput(data.cronTime);
         }
-        setAuthorizedPhoneInput("");
         if (showToast) toast({ title: "Statut mis à jour", type: "success" });
       } else {
         setStatus(null);
@@ -49,7 +59,7 @@ export default function WhatsAppAdminPage() {
       console.error("Bot is not reachable via proxy", error);
       setStatus(null);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -70,6 +80,13 @@ export default function WhatsAppAdminPage() {
       setIsConnecting(false);
     }
   }, [status?.connected, status?.qr, status?.pairingCode, isConnecting]);
+
+  // Sync numéros autorisés (dashboard + commandes .authorise sur WhatsApp)
+  useEffect(() => {
+    if (!status?.connected) return;
+    const interval = setInterval(() => fetchStatus(false, true), 5000);
+    return () => clearInterval(interval);
+  }, [status?.connected]);
 
   async function startConnection() {
     if (method === "pairing_code" && !phone) {
@@ -204,7 +221,11 @@ export default function WhatsAppAdminPage() {
         body: JSON.stringify({ time: cronTimeInput })
       });
       if (res.ok) {
-        toast({ title: "Heure enregistrée", message: "Le bot a été redémarré avec le nouveau créneau.", type: "success" });
+        toast({
+          title: "Heure enregistrée",
+          message: `Rappels à ${cronTimeInput} (heure du Maroc).`,
+          type: "success",
+        });
         await fetchStatus();
       } else {
         const data = await res.json();
@@ -264,6 +285,24 @@ export default function WhatsAppAdminPage() {
           </Button>
         </Card>
       )}
+
+      <Card className="p-6">
+        <h2 className="font-display text-xl mb-4">Commandes WhatsApp</h2>
+        <p className="text-sm text-text-3 mb-4">
+          Réservées aux numéros autorisés. Tapez <code className="text-accent">.menu</code> sur WhatsApp pour le menu complet.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {BOT_COMMANDS.map(({ cmd, desc }) => (
+            <div
+              key={cmd}
+              className="rounded-md border border-border bg-surface-2 px-3 py-2.5 text-sm"
+            >
+              <code className="text-accent font-mono text-[0.85rem]">{cmd}</code>
+              <p className="mt-1 text-text-3 text-xs">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* CONNEXION BOT */}
@@ -350,7 +389,8 @@ export default function WhatsAppAdminPage() {
                 onChange={e => setAuthorizedPhoneInput(e.target.value)}
               />
               <p className="text-xs text-text-3 mt-1">
-                Numéros pouvant utiliser .ping, .pro, .creneau, etc.
+                Ajout ici ou via WhatsApp (<code className="text-accent">.authorise NUMERO</code>).
+                La liste se met à jour automatiquement.
               </p>
             </Field>
             <div className="flex flex-wrap gap-2">
@@ -376,58 +416,59 @@ export default function WhatsAppAdminPage() {
               </Button>
             </div>
 
-            {status?.additionalPhones && status.additionalPhones.length > 0 && (
-              <ul className="space-y-2">
-                <p className="text-xs font-medium text-text-2">Numéros autorisés</p>
-                {status.additionalPhones.map((num) => (
-                  <li
-                    key={num}
-                    className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface-2 px-3 py-2"
-                  >
-                    <span className="font-mono text-sm">{num}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-danger hover:bg-danger-soft"
-                      disabled={actionLoading}
-                      onClick={() => removeAuthorizedPhone(num)}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-text-2">
+                Numéros autorisés ({status?.additionalPhones?.length ?? 0})
+              </p>
+              {status?.additionalPhones && status.additionalPhones.length > 0 ? (
+                <ul className="space-y-2">
+                  {status.additionalPhones.map((num) => (
+                    <li
+                      key={num}
+                      className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface-2 px-3 py-2"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <hr className="border-border" />
-
-          <div className="rounded-md border border-border bg-surface-2 p-4 text-sm text-text-2">
-            <p className="font-medium text-text mb-2">Commandes WhatsApp (numéro autorisé)</p>
-            <ul className="list-disc pl-5 space-y-1 text-text-3">
-              <li><code className="text-accent">.menu</code> — liste des commandes (avec logo NYC)</li>
-              <li><code className="text-accent">.authorise NUMERO</code> — autoriser un numéro</li>
-              <li><code className="text-accent">.unauthorise NUMERO</code> — retirer un numéro</li>
-              <li><code className="text-accent">.pro</code> — liste des clients pro avec numéros</li>
-              <li><code className="text-accent">.prosend 212612345678 : Message</code> — message personnalisé à un pro</li>
-              <li><code className="text-accent">.ping</code> — test de connexion</li>
-              <li><code className="text-accent">.creneau 20:00</code> — heure des rappels auto</li>
-            </ul>
+                      <span className="font-mono text-sm">{num}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-danger hover:bg-danger-soft"
+                        disabled={actionLoading}
+                        onClick={() => removeAuthorizedPhone(num)}
+                        title="Retirer ce numéro"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-text-3 rounded-md border border-dashed border-border px-3 py-4 text-center">
+                  Aucun numéro additionnel. Ajoutez-en ici ou via <code className="text-accent">.authorise</code> sur WhatsApp.
+                </p>
+              )}
+            </div>
           </div>
 
           <hr className="border-border" />
 
           <p className="text-sm text-text-2">
-            Heure d'envoi automatique des rappels aux Pros actifs.
+            Heure d&apos;envoi automatique des rappels aux Pros actifs.
           </p>
           <div className="flex flex-col gap-4">
             <Field>
-              <Label>Heure d'envoi (Format HH:mm)</Label>
+              <Label>Heure d&apos;envoi (Format HH:mm)</Label>
               <Input 
                 type="time" 
                 value={cronTimeInput} 
                 onChange={e => setCronTimeInput(e.target.value)}
               />
+              <p className="text-xs text-text-3 mt-1">
+                Fuseau horaire :{" "}
+                <span className="font-medium text-text-2">
+                  {status?.cronTimezone ?? "Africa/Casablanca"}
+                </span>{" "}
+                (heure du Maroc)
+              </p>
             </Field>
             <Button 
               onClick={saveCronTime} 
