@@ -23,19 +23,109 @@ if (!fs.existsSync('auth_info_baileys')) {
 }
 
 const CONFIG_FILE = path.join(__dirname, 'bot_config.json');
-let botConfig = { cronTime: "20:00" };
+let botConfig = { cronTime: "20:00", authorizedPhone: "" };
 if (fs.existsSync(CONFIG_FILE)) {
     try {
-        botConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+        botConfig = { cronTime: "20:00", authorizedPhone: "", ...parsed };
     } catch (e) { console.error("Erreur de lecture de la config", e); }
 }
 
 function saveConfig() {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(botConfig));
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(botConfig, null, 2));
+}
+
+function normalizePhone(input) {
+    if (!input) return '';
+    return String(input).split('@')[0].split(':')[0].replace(/\D/g, '');
+}
+
+function getMessagePhone(msg) {
+    const jid = msg.key.participant || msg.key.remoteJid;
+    return normalizePhone(jid);
+}
+
+function isSenderAuthorized(msg) {
+    const authorized = normalizePhone(botConfig.authorizedPhone);
+    if (!authorized) return false;
+
+    if (msg.key.fromMe) {
+        const botPhone = sock?.user?.id ? normalizePhone(sock.user.id) : '';
+        return botPhone === authorized;
+    }
+    return getMessagePhone(msg) === authorized;
+}
+
+function verifyApiSecret(req, res) {
+    const secret = req.headers['x-api-secret'] || req.headers['authorization']?.replace(/^Bearer\s+/i, '');
+    if (secret !== SITE_API_SECRET) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return false;
+    }
+    return true;
 }
 
 const SITE_API_SECRET = process.env.SITE_API_SECRET || "my-super-secret";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const WA_MAX_LEN = 3800;
+
+async function fetchProsFromApi(activeOnly = false) {
+    const fetch = (await import('node-fetch')).default;
+    const url = activeOnly
+        ? `${SITE_URL}/api/bot/pros`
+        : `${SITE_URL}/api/bot/pros?all=1`;
+    const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${SITE_API_SECRET}` }
+    });
+    if (!res.ok) {
+        throw new Error(await res.text());
+    }
+    const data = await res.json();
+    return data.pros || [];
+}
+
+function formatProList(pros) {
+    if (!pros.length) {
+        return '📋 Aucun client pro enregistré.';
+    }
+    const lines = [`📋 *Clients Pros* (${pros.length})\n`];
+    pros.forEach((p, i) => {
+        const phone = normalizePhone(p.phone);
+        const status = p.status === 'active' ? '✅ actif' : '⏸ inactif';
+        lines.push(
+            `${i + 1}. *${p.company}*`,
+            `   👤 ${p.contact_name}`,
+            `   📞 ${phone || '— sans numéro —'}`,
+            `   ${status}`,
+            ''
+        );
+    });
+    lines.push('_Envoi : .prosend NUMERO : Votre message_');
+    return lines.join('\n');
+}
+
+async function sendLongMessage(jid, text) {
+    if (text.length <= WA_MAX_LEN) {
+        await sock.sendMessage(jid, { text });
+        return;
+    }
+    const chunks = [];
+    let rest = text;
+    while (rest.length > WA_MAX_LEN) {
+        chunks.push(rest.slice(0, WA_MAX_LEN));
+        rest = rest.slice(WA_MAX_LEN);
+    }
+    if (rest) chunks.push(rest);
+    for (const chunk of chunks) {
+        await sock.sendMessage(jid, { text: chunk });
+        await new Promise(r => setTimeout(r, 400));
+    }
+}
+
+function findProByPhone(pros, targetPhone) {
+    const target = normalizePhone(targetPhone);
+    return pros.find(p => normalizePhone(p.phone) === target);
+}
 
 function extractText(msg) {
     if (!msg?.message) return '';
@@ -59,14 +149,23 @@ async function handleIncomingMessages(m) {
             if (!text) continue;
 
             const sender = msg.key.remoteJid;
-            const isFromMe = msg.key.fromMe;
             const cleanText = text.trim().toLowerCase();
             const isCommand = cleanText.startsWith('.');
 
-            // Autoriser .ping / .creneau depuis le même téléphone (Message à moi-même)
-            if (isFromMe && !isCommand) continue;
+            if (!isCommand) continue;
 
-            console.log(`[BOT] Message reçu de ${sender}: "${text}"`);
+            if (!botConfig.authorizedPhone) {
+                await sock.sendMessage(sender, { text: '⛔ Aucun numéro admin autorisé. Configurez-le dans le dashboard admin.' });
+                continue;
+            }
+
+            if (!isSenderAuthorized(msg)) {
+                console.log(`[BOT] Commande refusée — numéro non autorisé: ${getMessagePhone(msg) || 'inconnu'}`);
+                await sock.sendMessage(sender, { text: '⛔ Numéro non autorisé à utiliser ce bot.' });
+                continue;
+            }
+
+            console.log(`[BOT] Commande autorisée de ${sender}: "${text}"`);
 
             if (cleanText.startsWith('.ping')) {
                 await sock.sendMessage(sender, { text: '🤖 Bot est actif et connecté! Pong! ✅' });
@@ -80,6 +179,52 @@ async function handleIncomingMessages(m) {
                     await sock.sendMessage(sender, { text: `✅ Créneau d'envoi changé à ${botConfig.cronTime}` });
                 } else {
                     await sock.sendMessage(sender, { text: '❌ Format invalide. Utilisez: .creneau HH:mm\nExemple: .creneau 15:00' });
+                }
+            } else if (cleanText === '.pro') {
+                try {
+                    const pros = await fetchProsFromApi(false);
+                    await sendLongMessage(sender, formatProList(pros));
+                } catch (err) {
+                    console.error('[BOT] Erreur .pro:', err);
+                    await sock.sendMessage(sender, { text: '❌ Impossible de récupérer la liste des pros.' });
+                }
+            } else if (cleanText.startsWith('.prosend')) {
+                const match = text.trim().match(/^\.prosend\s+\(?(\d{9,15})\)?\s*:\s*(.+)$/is);
+                if (!match) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Format: .prosend NUMERO : Message\nExemple: .prosend 212612345678 : Bonjour, votre commande est prête.'
+                    });
+                    continue;
+                }
+                const [, targetPhone, messageBody] = match;
+                const message = messageBody.trim();
+                if (!message) {
+                    await sock.sendMessage(sender, { text: '❌ Le message ne peut pas être vide.' });
+                    continue;
+                }
+                try {
+                    const pros = await fetchProsFromApi(false);
+                    const pro = findProByPhone(pros, targetPhone);
+                    if (!pro) {
+                        await sock.sendMessage(sender, {
+                            text: `❌ Aucun pro trouvé avec le numéro ${normalizePhone(targetPhone)}. Utilisez .pro pour voir la liste.`
+                        });
+                        continue;
+                    }
+                    const phone = normalizePhone(pro.phone);
+                    if (!phone) {
+                        await sock.sendMessage(sender, { text: `❌ ${pro.company} n'a pas de numéro WhatsApp enregistré.` });
+                        continue;
+                    }
+                    const jid = `${phone}@s.whatsapp.net`;
+                    await sock.sendMessage(jid, { text: message });
+                    await sock.sendMessage(sender, {
+                        text: `✅ Message envoyé à *${pro.company}* (${phone}).`
+                    });
+                    console.log(`[BOT] .prosend → ${pro.company} (${phone})`);
+                } catch (err) {
+                    console.error('[BOT] Erreur .prosend:', err);
+                    await sock.sendMessage(sender, { text: '❌ Échec de l\'envoi du message au pro.' });
                 }
             }
         } catch (err) {
@@ -215,18 +360,7 @@ function setupCron() {
         }
 
         try {
-            const fetch = (await import('node-fetch')).default;
-            const res = await fetch(`${SITE_URL}/api/bot/pros`, {
-                headers: { 'Authorization': `Bearer ${SITE_API_SECRET}` }
-            });
-
-            if (!res.ok) {
-                console.error("[CRON] Failed to fetch pros from Next.js API:", await res.text());
-                return;
-            }
-
-            const data = await res.json();
-            const pros = data.pros || [];
+            const pros = await fetchProsFromApi(true);
 
             console.log(`[CRON] Found ${pros.length} active pros to message.`);
 
@@ -262,7 +396,8 @@ app.get('/api/status', (req, res) => {
         connected: isConnected,
         qr: currentQrBase64,
         pairingCode: pairingCode,
-        cronTime: botConfig.cronTime
+        cronTime: botConfig.cronTime,
+        authorizedPhone: botConfig.authorizedPhone || ''
     });
 });
 
@@ -308,6 +443,8 @@ app.post('/api/logout', async (req, res) => {
 });
 
 app.post('/api/set-cron', (req, res) => {
+    if (!verifyApiSecret(req, res)) return;
+
     const { time } = req.body;
     if (!time || !/^\d{2}:\d{2}$/.test(time)) {
         return res.status(400).json({ error: "Invalid time format (HH:mm expected)" });
@@ -318,6 +455,21 @@ app.post('/api/set-cron', (req, res) => {
     setupCron();
 
     res.json({ success: true, message: "Cron updated successfully", time: botConfig.cronTime });
+});
+
+app.post('/api/set-authorized-phone', (req, res) => {
+    if (!verifyApiSecret(req, res)) return;
+
+    const { phone } = req.body;
+    const normalized = normalizePhone(phone);
+    if (!normalized || normalized.length < 9 || normalized.length > 15) {
+        return res.status(400).json({ error: "Numéro invalide (indicatif + numéro, ex: 212612345678)" });
+    }
+
+    botConfig.authorizedPhone = normalized;
+    saveConfig();
+
+    res.json({ success: true, message: "Numéro autorisé enregistré", authorizedPhone: botConfig.authorizedPhone });
 });
 
 app.post('/api/send-message', async (req, res) => {

@@ -49,6 +49,8 @@ export async function POST(req: Request) {
     targetUrl = `${botUrl}/api/logout`;
   } else if (action === "set-cron") {
     targetUrl = `${botUrl}/api/set-cron`;
+  } else if (action === "set-authorized-phone") {
+    targetUrl = `${botUrl}/api/set-authorized-phone`;
   }
 
   try {

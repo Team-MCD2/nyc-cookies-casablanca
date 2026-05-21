@@ -2,18 +2,18 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Trash2, Copy, X } from "lucide-react";
+import { Search, Trash2, Copy, X, Pencil } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
-import { InputGroup } from "@/components/ui/input";
+import { Field, Label, Input, InputGroup, Select } from "@/components/ui/input";
 import { ProStatusBadge } from "@/components/status-badge";
 import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
-import { deletePro, deleteInvitation, updateProRequestStatus, deleteProRequest, createInvitation } from "@/lib/actions";
+import { deletePro, deleteInvitation, updateProRequestStatus, deleteProRequest, createInvitation, updatePro } from "@/lib/actions";
 import { money, formatDate } from "@/lib/utils";
 import type { Pro, Invitation, ProRequest } from "@/lib/types";
 import { InviteProForm } from "./invite-form";
@@ -27,6 +27,7 @@ interface Props {
 export function ProsClient({ pros, invitations, proRequests }: Props) {
   const [query, setQuery] = useState("");
   const [confirmDeletePro, setConfirmDeletePro] = useState<Pro | null>(null);
+  const [editingPro, setEditingPro] = useState<Pro | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -106,7 +107,16 @@ export function ProsClient({ pros, invitations, proRequests }: Props) {
                       <ProStatusBadge status={p.status} />
                     </Td>
                     <Td>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingPro(p)}
+                          title="Modifier ce pro"
+                          aria-label="Modifier"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -153,8 +163,119 @@ export function ProsClient({ pros, invitations, proRequests }: Props) {
         </Card>
       )}
 
+      <EditProModal pro={editingPro} onClose={() => setEditingPro(null)} />
       <DeleteProModal pro={confirmDeletePro} onClose={() => setConfirmDeletePro(null)} />
     </>
+  );
+}
+
+function EditProModal({ pro, onClose }: { pro: Pro | null; onClose: () => void }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!pro) return;
+    setError(null);
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      id: pro.id,
+      company: String(fd.get("company") ?? "").trim(),
+      contactName: String(fd.get("contactName") ?? "").trim(),
+      email: String(fd.get("email") ?? "").trim(),
+      phone: String(fd.get("phone") ?? "").trim() || null,
+      address: String(fd.get("address") ?? "").trim() || null,
+      ice: String(fd.get("ice") ?? "").trim() || null,
+      paymentTerms: Number(fd.get("paymentTerms") ?? 30),
+      status: String(fd.get("status") ?? "active") as "active" | "inactive",
+    };
+
+    if (!payload.company || !payload.contactName || !payload.email) {
+      setError("Société, contact et email sont requis.");
+      return;
+    }
+
+    start(async () => {
+      try {
+        await updatePro(payload);
+        toast({ title: "Pro mis à jour", message: payload.company, type: "success" });
+        onClose();
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erreur inconnue.");
+      }
+    });
+  }
+
+  return (
+    <Modal
+      open={!!pro}
+      onClose={onClose}
+      title={pro ? `Modifier — ${pro.company}` : "Modifier le pro"}
+      size="md"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={pending}>
+            Annuler
+          </Button>
+          <Button type="submit" form="edit-pro-form" disabled={pending}>
+            {pending ? "Enregistrement…" : "Enregistrer"}
+          </Button>
+        </>
+      }
+    >
+      {pro && (
+        <form id="edit-pro-form" onSubmit={onSubmit} className="stack">
+          <Field>
+            <Label htmlFor="company">Société</Label>
+            <Input id="company" name="company" defaultValue={pro.company} required />
+          </Field>
+          <Field>
+            <Label htmlFor="contactName">Nom du contact</Label>
+            <Input id="contactName" name="contactName" defaultValue={pro.contactName} required />
+          </Field>
+          <Field>
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" defaultValue={pro.email} required />
+          </Field>
+          <Field>
+            <Label htmlFor="phone">Téléphone WhatsApp</Label>
+            <Input id="phone" name="phone" placeholder="212612345678" defaultValue={pro.phone ?? ""} />
+            <p className="mt-1 text-xs text-text-3">Utilisé pour .prosend (indicatif, sans +)</p>
+          </Field>
+          <Field>
+            <Label htmlFor="address">Adresse</Label>
+            <Input id="address" name="address" defaultValue={pro.address ?? ""} />
+          </Field>
+          <Field>
+            <Label htmlFor="ice">ICE</Label>
+            <Input id="ice" name="ice" defaultValue={pro.ice ?? ""} />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field>
+              <Label htmlFor="paymentTerms">Délai de paiement (jours)</Label>
+              <Input
+                id="paymentTerms"
+                name="paymentTerms"
+                type="number"
+                min={0}
+                max={365}
+                defaultValue={pro.paymentTerms}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="status">Statut</Label>
+              <Select id="status" name="status" defaultValue={pro.status}>
+                <option value="active">Actif</option>
+                <option value="inactive">Inactif</option>
+              </Select>
+            </Field>
+          </div>
+          {error && <p className="text-sm text-danger">{error}</p>}
+        </form>
+      )}
+    </Modal>
   );
 }
 

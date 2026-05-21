@@ -292,6 +292,40 @@ export async function deleteCustomer(id: string) {
   revalidatePath("/admin/users");
 }
 
+const proUpdateSchema = z.object({
+  id: z.string().uuid(),
+  company: z.string().min(1),
+  contactName: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  ice: z.string().nullable().optional(),
+  paymentTerms: z.coerce.number().int().min(0).max(365),
+  status: z.enum(["active", "inactive"]),
+});
+
+export async function updatePro(input: z.input<typeof proUpdateSchema>) {
+  await requireRole(["admin"]);
+  const data = proUpdateSchema.parse(input);
+  const sb = createAdminClient();
+  const { error } = await sb
+    .from("pros")
+    .update({
+      company: data.company,
+      contact_name: data.contactName,
+      email: data.email,
+      phone: data.phone?.trim() || null,
+      address: data.address?.trim() || null,
+      ice: data.ice?.trim() || null,
+      payment_terms_days: data.paymentTerms,
+      status: data.status,
+    })
+    .eq("id", data.id);
+  if (error) throw error;
+  revalidatePath("/admin/pros");
+  revalidatePath("/admin/users");
+}
+
 export async function deletePro(id: string) {
   await requireRole(["admin"]);
   const sb = createAdminClient();

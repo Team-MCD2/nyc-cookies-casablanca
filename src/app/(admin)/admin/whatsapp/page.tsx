@@ -14,12 +14,14 @@ type BotStatus = {
   qr: string | null;
   pairingCode: string | null;
   cronTime: string;
+  authorizedPhone?: string;
 };
 
 export default function WhatsAppAdminPage() {
   const [status, setStatus] = useState<BotStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState("");
+  const [authorizedPhoneInput, setAuthorizedPhoneInput] = useState("");
   const [cronTimeInput, setCronTimeInput] = useState("");
   const [method, setMethod] = useState<"qr" | "pairing_code">("pairing_code");
   const [actionLoading, setActionLoading] = useState(false);
@@ -35,6 +37,9 @@ export default function WhatsAppAdminPage() {
         setStatus(data);
         if (!cronTimeInput && data.cronTime) {
           setCronTimeInput(data.cronTime);
+        }
+        if (data.authorizedPhone !== undefined) {
+          setAuthorizedPhoneInput(data.authorizedPhone);
         }
         if (showToast) toast({ title: "Statut mis à jour", type: "success" });
       } else {
@@ -108,6 +113,33 @@ export default function WhatsAppAdminPage() {
       await fetchStatus();
     } catch (e) {
       toast({ title: "Erreur", message: "Impossible de se déconnecter.", type: "danger" });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function saveAuthorizedPhone() {
+    const normalized = authorizedPhoneInput.replace(/\D/g, "");
+    if (!normalized || normalized.length < 9) {
+      toast({ title: "Erreur", message: "Entrez un numéro valide (ex: 212612345678).", type: "danger" });
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/whatsapp?action=set-authorized-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: normalized })
+      });
+      if (res.ok) {
+        toast({ title: "Numéro enregistré", message: "Seul ce numéro pourra utiliser .ping et .creneau.", type: "success" });
+        await fetchStatus();
+      } else {
+        const data = await res.json();
+        toast({ title: "Erreur", message: data.error || "Impossible d'enregistrer.", type: "danger" });
+      }
+    } catch {
+      toast({ title: "Erreur", message: "Le bot est inaccessible.", type: "danger" });
     } finally {
       setActionLoading(false);
     }
@@ -237,13 +269,13 @@ export default function WhatsAppAdminPage() {
 
               {method === "pairing_code" && (
                 <Field>
-                  <Label>Numéro de téléphone du Bot (avec indicatif)</Label>
+                  <Label>Numéro WhatsApp du bot (connexion)</Label>
                   <Input 
                     placeholder="212600000000" 
                     value={phone} 
                     onChange={e => setPhone(e.target.value)}
                   />
-                  <p className="text-xs text-text-3 mt-1">Exemple: 212612345678 (pas de + ni de 0 au début)</p>
+                  <p className="text-xs text-text-3 mt-1">Le compte WhatsApp lié au bot. Ex: 212612345678</p>
                 </Field>
               )}
 
@@ -255,13 +287,49 @@ export default function WhatsAppAdminPage() {
           )}
         </Card>
 
-        {/* CONFIGURATION CRON */}
+        {/* CONFIGURATION */}
         <Card className="flex flex-col gap-6 p-6">
-          <h2 className="font-display text-xl">Configuration de l'envoi</h2>
-          <p className="text-sm text-text-2">
-            Réglez l'heure à laquelle le bot enverra automatiquement le message de relance à tous les Pros actifs.
-          </p>
+          <h2 className="font-display text-xl">Configuration</h2>
 
+          <div className="flex flex-col gap-4">
+            <Field>
+              <Label>Numéro admin autorisé (commandes)</Label>
+              <Input
+                placeholder="212612345678"
+                value={authorizedPhoneInput}
+                onChange={e => setAuthorizedPhoneInput(e.target.value)}
+              />
+              <p className="text-xs text-text-3 mt-1">
+                Votre numéro personnel : seul lui pourra envoyer .ping et .creneau au bot (différent du numéro du bot).
+              </p>
+            </Field>
+            <Button
+              onClick={saveAuthorizedPhone}
+              disabled={actionLoading || !authorizedPhoneInput || !status}
+              variant="primary"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Enregistrer le numéro autorisé
+            </Button>
+          </div>
+
+          <hr className="border-border" />
+
+          <div className="rounded-md border border-border bg-surface-2 p-4 text-sm text-text-2">
+            <p className="font-medium text-text mb-2">Commandes WhatsApp (numéro autorisé)</p>
+            <ul className="list-disc pl-5 space-y-1 text-text-3">
+              <li><code className="text-accent">.pro</code> — liste des clients pro avec numéros</li>
+              <li><code className="text-accent">.prosend 212612345678 : Message</code> — message personnalisé à un pro</li>
+              <li><code className="text-accent">.ping</code> — test de connexion</li>
+              <li><code className="text-accent">.creneau 20:00</code> — heure des rappels auto</li>
+            </ul>
+          </div>
+
+          <hr className="border-border" />
+
+          <p className="text-sm text-text-2">
+            Heure d'envoi automatique des rappels aux Pros actifs.
+          </p>
           <div className="flex flex-col gap-4">
             <Field>
               <Label>Heure d'envoi (Format HH:mm)</Label>
@@ -277,7 +345,7 @@ export default function WhatsAppAdminPage() {
               variant="secondary"
             >
               <Save className="mr-2 h-4 w-4" /> 
-              Enregistrer & Redémarrer le Bot
+              Enregistrer l'heure d'envoi
             </Button>
           </div>
         </Card>
