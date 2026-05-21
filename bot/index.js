@@ -342,6 +342,19 @@ function isKnownBotCommand(cleanText, cmd) {
     return prefixes.some((p) => cleanText.startsWith(p));
 }
 
+const COMMAND_REACTION = '🍪';
+
+async function reactToCommand(msg) {
+    if (!sock || !msg?.key?.remoteJid) return;
+    try {
+        await sock.sendMessage(msg.key.remoteJid, {
+            react: { text: COMMAND_REACTION, key: msg.key },
+        });
+    } catch (err) {
+        console.warn('[BOT] Réaction commande:', err.message);
+    }
+}
+
 function getMenuText() {
     return [
         '🍪 *NYC Cookies — Commandes*',
@@ -764,6 +777,8 @@ async function handleIncomingMessages(m) {
             const cmd = cleanText.split(/\s+/)[0].split('(')[0].split(':')[0];
 
             if (!isKnownBotCommand(cleanText, cmd)) continue;
+
+            await reactToCommand(msg);
 
             if (cmd === '.menu') {
                 await sendMenu(sender);
