@@ -219,6 +219,21 @@ export async function PATCH(req: Request) {
     }
     const { error: payErr } = await sb.from("orders").update({ payment }).eq("reference", reference);
     if (payErr) return NextResponse.json({ error: payErr.message }, { status: 500 });
+
+    const { data: ord } = await sb.from("orders").select("id").eq("reference", reference).maybeSingle();
+    if (ord?.id) {
+      if (payment === "paid") {
+        await sb.from("invoices").update({ status: "paid" }).eq("order_id", ord.id);
+      } else {
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: invs } = await sb.from("invoices").select("id, due_date").eq("order_id", ord.id);
+        for (const inv of invs ?? []) {
+          const invStatus = inv.due_date < today ? "overdue" : "upcoming";
+          await sb.from("invoices").update({ status: invStatus }).eq("id", inv.id);
+        }
+      }
+    }
+
     return NextResponse.json({
       reference,
       previousPayment: cur.payment,

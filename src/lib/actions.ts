@@ -7,7 +7,45 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole, requireSession } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 import { notifyAdmins, sendWhatsAppToPhone } from "@/lib/whatsapp-bot";
-import type { OrderStatus, PaymentStatus } from "@/lib/types";
+import type { OrderStatus, PaymentStatus, InvoiceStatus } from "@/lib/types";
+
+// ---------- Sync commande ↔ facture (paiement) ----------
+async function syncInvoicePaymentFromOrder(
+  sb: ReturnType<typeof createAdminClient>,
+  orderReference: string,
+  payment: PaymentStatus,
+) {
+  const { data: ord } = await sb.from("orders").select("id").eq("reference", orderReference).maybeSingle();
+  if (!ord?.id) return;
+
+  if (payment === "paid") {
+    await sb.from("invoices").update({ status: "paid" }).eq("order_id", ord.id);
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: invs } = await sb.from("invoices").select("id, due_date").eq("order_id", ord.id);
+  for (const inv of invs ?? []) {
+    const status: InvoiceStatus = inv.due_date < today ? "overdue" : "upcoming";
+    await sb.from("invoices").update({ status }).eq("id", inv.id);
+  }
+}
+
+async function syncOrderPaymentFromInvoice(
+  sb: ReturnType<typeof createAdminClient>,
+  invoiceReference: string,
+  invoiceStatus: InvoiceStatus,
+) {
+  const { data: inv } = await sb
+    .from("invoices")
+    .select("order_id")
+    .eq("reference", invoiceReference)
+    .maybeSingle();
+  if (!inv?.order_id) return;
+
+  const payment: PaymentStatus = invoiceStatus === "paid" ? "paid" : "pending";
+  await sb.from("orders").update({ payment }).eq("id", inv.order_id);
+}
 
 // ---------- Schemas ----------
 const productSchema = z.object({
@@ -213,16 +251,36 @@ export async function updateOrderPayment(reference: string, payment: PaymentStat
   const sb = createAdminClient();
   const { error } = await sb.from("orders").update({ payment }).eq("reference", reference);
   if (error) throw error;
+  await syncInvoicePaymentFromOrder(sb, reference, payment);
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/invoices");
+  revalidatePath("/pro/invoices");
+  revalidatePath("/pro/dashboard");
 }
 
 // ---------- Invoices ----------
 export async function markInvoicePaid(reference: string) {
   await requireRole(["admin", "pro"]);
   const sb = createAdminClient();
-  await sb.from("invoices").update({ status: "paid" }).eq("reference", reference);
+  const { error } = await sb.from("invoices").update({ status: "paid" }).eq("reference", reference);
+  if (error) throw error;
+  await syncOrderPaymentFromInvoice(sb, reference, "paid");
   revalidatePath("/admin/invoices");
+  revalidatePath("/admin/orders");
   revalidatePath("/pro/invoices");
+  revalidatePath("/pro/dashboard");
+}
+
+export async function updateInvoiceStatus(reference: string, status: InvoiceStatus) {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+  const { error } = await sb.from("invoices").update({ status }).eq("reference", reference);
+  if (error) throw error;
+  await syncOrderPaymentFromInvoice(sb, reference, status);
+  revalidatePath("/admin/invoices");
+  revalidatePath("/admin/orders");
+  revalidatePath("/pro/invoices");
+  revalidatePath("/pro/dashboard");
 }
 
 export async function applyInvoiceTva(reference: string, tvaRate: number) {

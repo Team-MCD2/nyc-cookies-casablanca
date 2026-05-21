@@ -22,6 +22,7 @@ const INVOICE_MAP: Record<InvoiceStatus, { variant: "warning" | "success" | "dan
 
 export const ORDER_STATUS_OPTIONS = Object.entries(ORDER_MAP) as [OrderStatus, (typeof ORDER_MAP)[OrderStatus]][];
 export const PAYMENT_STATUS_OPTIONS = Object.entries(PAYMENT_MAP) as [PaymentStatus, (typeof PAYMENT_MAP)[PaymentStatus]][];
+export const INVOICE_STATUS_OPTIONS = Object.entries(INVOICE_MAP) as [InvoiceStatus, (typeof INVOICE_MAP)[InvoiceStatus]][];
 
 const PRO_MAP: Record<ProStatus, { variant: "success" | "neutral"; label: string }> = {
   active: { variant: "success", label: "Actif" },
