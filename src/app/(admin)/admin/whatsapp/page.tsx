@@ -11,8 +11,10 @@ import { toast } from "@/components/ui/toaster";
 
 type BotStatus = {
   connected: boolean;
+  connecting?: boolean;
   qr: string | null;
   pairingCode: string | null;
+  qrError?: string | null;
   cronTime: string;
   cronTimezone?: string;
   additionalPhones?: string[];
@@ -80,20 +82,28 @@ export default function WhatsAppAdminPage() {
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(() => {
-      // Poll if not connected but trying to connect (has QR, code, or is actively connecting)
-      if (isConnecting || (status && !status.connected && (status.qr || status.pairingCode))) {
-        fetchStatus();
-      }
+      const linking =
+        isConnecting ||
+        status?.connecting ||
+        (status && !status.connected && (status.qr || status.pairingCode));
+      if (linking) fetchStatus(false, true);
     }, 2000);
     return () => clearInterval(interval);
-  }, [isConnecting, status?.connected, status?.qr, status?.pairingCode]);
+  }, [isConnecting, status?.connected, status?.connecting, status?.qr, status?.pairingCode]);
 
-  // Reset connecting state when successfully connected or when connection state becomes available
   useEffect(() => {
-    if (status?.connected || (!status?.qr && !status?.pairingCode && !isConnecting)) {
+    if (status?.connected) {
+      setIsConnecting(false);
+      return;
+    }
+    if (status?.connecting) {
+      setIsConnecting(true);
+      return;
+    }
+    if (!status?.qr && !status?.pairingCode && !status?.connecting) {
       setIsConnecting(false);
     }
-  }, [status?.connected, status?.qr, status?.pairingCode, isConnecting]);
+  }, [status?.connected, status?.connecting, status?.qr, status?.pairingCode]);
 
   // Sync numéros autorisés (dashboard + commandes .authorise sur WhatsApp)
   useEffect(() => {
@@ -260,9 +270,21 @@ export default function WhatsAppAdminPage() {
       />
 
       {/* QR Code / Pairing Code Display Section */}
-      {status && !status.connected && (status.qr || status.pairingCode) && (
+      {status && !status.connected && (status.connecting || status.qr || status.pairingCode || status.qrError) && (
         <Card className="flex flex-col gap-6 p-6">
           <h2 className="font-display text-xl">Codes de Connexion Actifs</h2>
+
+          {status.qrError && !status.qr && !status.pairingCode && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 p-4 text-sm text-text-2">
+              {status.qrError}
+            </div>
+          )}
+
+          {status.connecting && !status.qr && !status.pairingCode && !status.qrError && (
+            <p className="text-text-3 text-sm text-center animate-pulse">
+              Génération du code en cours… (quelques secondes)
+            </p>
+          )}
           
           <div className="grid gap-6 md:grid-cols-2">
             {/* Pairing Code */}
@@ -361,8 +383,12 @@ export default function WhatsAppAdminPage() {
             </div>
           )}
 
+          {status?.qrError && !status.connected && !status.qr && !status.pairingCode && (
+            <p className="text-sm text-danger/90">{status.qrError}</p>
+          )}
+
           {/* Disconnected State (Ready to connect) */}
-          {status && !status.connected && !status.qr && !status.pairingCode && (
+          {status && !status.connected && !status.connecting && !status.qr && !status.pairingCode && (
             <div className="flex flex-col gap-4">
               <div className="flex gap-2">
                 <Button 

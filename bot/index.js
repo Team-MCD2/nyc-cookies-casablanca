@@ -16,6 +16,13 @@ let sock = null;
 let currentQrBase64 = null;
 let pairingCode = null;
 let isConnected = false;
+let isLinking = false;
+let linkMethod = 'qr';
+let linkPhone = '';
+let qrError = null;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 6;
 let cronJob = null;
 
 if (!fs.existsSync('auth_info_baileys')) {
@@ -867,13 +874,95 @@ async function handleIncomingMessages(m) {
     }
 }
 
-async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
-    if (isConnected && sock) return;
+function clearAuthSession() {
+    if (fs.existsSync('auth_info_baileys')) {
+        try {
+            fs.rmSync('auth_info_baileys', { recursive: true, force: true });
+            console.log('[BOT] Session auth_info_baileys supprimée.');
+        } catch (err) {
+            console.error('[BOT] Impossible de supprimer auth_info_baileys :', err);
+        }
+    }
+}
 
-    currentQrBase64 = null;
-    pairingCode = null;
+function hasRegisteredSession() {
+    try {
+        const credsPath = path.join('auth_info_baileys', 'creds.json');
+        if (!fs.existsSync(credsPath)) return false;
+        const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+        return Boolean(creds?.me?.id);
+    } catch {
+        return false;
+    }
+}
 
-    console.log(`[BOT] Tentative de connexion WhatsApp via méthode : ${method}...`);
+function isQrExpiredError(error) {
+    if (!error) return false;
+    const statusCode = error?.output?.statusCode;
+    const msg = String(error?.message || error?.output?.payload?.message || '');
+    return statusCode === 408 || msg.includes('QR refs');
+}
+
+async function destroySocket() {
+    const old = sock;
+    sock = null;
+    if (!old) return;
+    try {
+        old.ev.removeAllListeners('connection.update');
+        old.ev.removeAllListeners('creds.update');
+        old.ev.removeAllListeners('messages.upsert');
+        old.ev.removeAllListeners('lid-mapping.update');
+        await old.end(undefined);
+    } catch (e) {
+        console.warn('[BOT] Fermeture socket :', e.message);
+    }
+}
+
+function cancelScheduledReconnect() {
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+}
+
+function scheduleReconnect(method, phoneNumber, delayMs, { clearAuth = false } = {}) {
+    cancelScheduledReconnect();
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        isLinking = false;
+        qrError = 'Trop de tentatives de connexion. Cliquez sur « Générer le QR » pour recommencer.';
+        console.error('[BOT] Limite de reconnexions atteinte.');
+        return;
+    }
+    reconnectAttempts++;
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connectToWhatsApp(method, phoneNumber, { force: true, clearAuth });
+    }, delayMs);
+}
+
+async function connectToWhatsApp(method = 'qr', phoneNumber = '', options = {}) {
+    const { force = false, clearAuth = false } = options;
+
+    if (isConnected && sock && !force) return;
+    if (isLinking && !force) return;
+
+    cancelScheduledReconnect();
+    isLinking = true;
+    linkMethod = method;
+    linkPhone = phoneNumber;
+    if (force) qrError = null;
+
+    await destroySocket();
+
+    if (clearAuth) {
+        clearAuthSession();
+        currentQrBase64 = null;
+        pairingCode = null;
+    } else if (force) {
+        pairingCode = null;
+    }
+
+    console.log(`[BOT] Connexion WhatsApp (${method})${clearAuth ? ' — session réinitialisée' : ''}...`);
 
     try {
         const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -882,9 +971,9 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
         try {
             const latest = await fetchLatestBaileysVersion();
             version = latest.version;
-            console.log(`[BOT] Version WhatsApp Web détectée : v${version.join('.')}`);
+            console.log(`[BOT] Version WhatsApp Web : v${version.join('.')}`);
         } catch (e) {
-            console.warn("[BOT] Impossible de récupérer la version en ligne, utilisation de la version par défaut.");
+            console.warn('[BOT] Version en ligne indisponible, version par défaut.');
         }
 
         sock = makeWASocket({
@@ -892,18 +981,23 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
             auth: state,
             logger: pino({ level: 'silent' }),
             printQRInTerminal: true,
-            browser: ["Windows", "Chrome", "110.0.5481.100"]
+            browser: ['Windows', 'Chrome', '110.0.5481.100'],
+            qrTimeout: 60000,
+            connectTimeoutMs: 60000,
         });
 
         if (method === 'pairing_code' && phoneNumber && !sock.authState.creds.me) {
             setTimeout(async () => {
+                if (!sock || isConnected) return;
                 try {
-                    console.log(`[BOT] Demande du code d'association pour le numéro : ${phoneNumber}`);
+                    console.log(`[BOT] Code d'association pour : ${phoneNumber}`);
                     const code = await sock.requestPairingCode(phoneNumber);
-                    pairingCode = code?.match(/.{1,4}/g)?.join("-") || code;
-                    console.log("[BOT] Code d'association généré :", pairingCode);
+                    pairingCode = code?.match(/.{1,4}/g)?.join('-') || code;
+                    console.log('[BOT] Code d\'association généré.');
                 } catch (err) {
-                    console.error("[BOT] Erreur lors de la demande de code d'association :", err);
+                    console.error('[BOT] Erreur code d\'association :', err);
+                    qrError = 'Impossible de générer le code. Vérifiez le numéro et réessayez.';
+                    isLinking = false;
                 }
             }, 3000);
         }
@@ -914,51 +1008,68 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
             if (qr && method === 'qr') {
                 try {
                     currentQrBase64 = await qrcode.toDataURL(qr);
-                    isConnected = false;
-                    console.log('[BOT] Nouveau code QR généré.');
+                    qrError = null;
+                    reconnectAttempts = 0;
+                    console.log('[BOT] Nouveau QR disponible pour l\'interface.');
                 } catch (err) {
-                    console.error("[BOT] Erreur de génération du code QR Base64 :", err);
+                    console.error('[BOT] Erreur QR Base64 :', err);
                 }
             }
 
             if (connection === 'close') {
                 isConnected = false;
-                currentQrBase64 = null;
-                pairingCode = null;
-                sock = null;
-
                 const error = lastDisconnect?.error;
                 const statusCode = error?.output?.statusCode;
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+                const loggedOut = statusCode === DisconnectReason.loggedOut;
+                const qrExpired = isQrExpiredError(error);
 
-                console.error(`[BOT] Connexion fermée. Code d'état : ${statusCode}. Reconnexion automatique : ${shouldReconnect}`);
-                if (error) {
-                    console.error("[BOT] Détails de l'erreur de déconnexion :", error);
+                console.error(`[BOT] Connexion fermée (${statusCode}). QR expiré: ${qrExpired}`);
+                if (error) console.error('[BOT] Détail:', error.message || error);
+
+                await destroySocket();
+
+                if (loggedOut) {
+                    isLinking = false;
+                    currentQrBase64 = null;
+                    pairingCode = null;
+                    qrError = null;
+                    reconnectAttempts = 0;
+                    clearAuthSession();
+                    return;
                 }
 
+                if (qrExpired) {
+                    console.log('[BOT] QR expiré — nouvelle session dans 3s');
+                    currentQrBase64 = null;
+                    pairingCode = null;
+                    scheduleReconnect(method, phoneNumber, 3000, { clearAuth: true });
+                    return;
+                }
+
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
                 if (shouldReconnect) {
-                    const delay = statusCode === DisconnectReason.restartRequired ? 1000 : 5000;
-                    setTimeout(() => connectToWhatsApp(method, phoneNumber), delay);
+                    const delay = statusCode === DisconnectReason.restartRequired ? 1500 : 5000;
+                    scheduleReconnect(method, phoneNumber, delay, { clearAuth: false });
                 } else {
-                    console.log("[BOT] Déconnexion complète détectée. Nettoyage de la session.");
-                    try {
-                        fs.rmSync('auth_info_baileys', { recursive: true, force: true });
-                        console.log("[BOT] Répertoire auth_info_baileys supprimé avec succès.");
-                    } catch (err) {
-                        console.error("[BOT] Impossible de supprimer le répertoire de session :", err);
-                    }
+                    isLinking = false;
+                    currentQrBase64 = null;
+                    pairingCode = null;
                 }
             } else if (connection === 'open') {
-                console.log('[BOT] Connexion établie avec succès avec WhatsApp ! 🎉');
+                console.log('[BOT] Connecté à WhatsApp.');
                 isConnected = true;
+                isLinking = false;
                 currentQrBase64 = null;
                 pairingCode = null;
+                qrError = null;
+                reconnectAttempts = 0;
+                cancelScheduledReconnect();
 
                 try {
                     const jid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-                    await sock.sendMessage(jid, { text: "Bot NYC Cookies connecté avec succès ! ✅" });
+                    await sock.sendMessage(jid, { text: 'Bot NYC Cookies connecté avec succès ! ✅' });
                 } catch (err) {
-                    console.error("[BOT] Impossible d'envoyer le message de confirmation :", err);
+                    console.error('[BOT] Message de confirmation :', err);
                 }
             }
         });
@@ -978,14 +1089,15 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
             }
         });
 
-        // Écoute des messages entrants (commandes .ping, .creneau, etc.)
         sock.ev.on('messages.upsert', async (m) => {
             await handleIncomingMessages(m);
         });
 
     } catch (error) {
-        console.error("[BOT] Erreur critique lors de l'initialisation de la connexion :", error);
-        setTimeout(() => connectToWhatsApp(method, phoneNumber), 5000);
+        console.error('[BOT] Erreur initialisation connexion :', error);
+        isLinking = false;
+        qrError = 'Erreur de connexion. Réessayez via « Générer le QR ».';
+        await destroySocket();
     }
 }
 
@@ -1033,7 +1145,8 @@ function setupCron() {
 }
 
 setTimeout(() => {
-    if (fs.existsSync('auth_info_baileys/creds.json')) {
+    if (hasRegisteredSession()) {
+        console.log('[BOT] Session enregistrée détectée — reconnexion automatique.');
         connectToWhatsApp('qr');
     }
     setupCron();
@@ -1042,8 +1155,10 @@ setTimeout(() => {
 app.get('/api/status', (req, res) => {
     res.json({
         connected: isConnected,
+        connecting: isLinking && !isConnected,
         qr: currentQrBase64,
         pairingCode: pairingCode,
+        qrError: qrError,
         cronTime: botConfig.cronTime,
         ...getStatusPhonesPayload(),
     });
@@ -1053,35 +1168,51 @@ app.post('/api/start', async (req, res) => {
     const { method, phone } = req.body;
 
     if (isConnected) {
-        return res.json({ success: true, message: "Already connected" });
+        return res.json({ success: true, message: 'Already connected' });
     }
 
     if (method === 'pairing_code' && !phone) {
-        return res.status(400).json({ error: "Phone number required for pairing code" });
+        return res.status(400).json({ error: 'Phone number required for pairing code' });
     }
 
-    await connectToWhatsApp(method, phone);
-    res.json({ success: true, message: "Started connection process" });
+    cancelScheduledReconnect();
+    reconnectAttempts = 0;
+    qrError = null;
+
+    const useMethod = method || 'qr';
+    const clearAuthOnStart = useMethod === 'qr' || !hasRegisteredSession();
+
+    await connectToWhatsApp(useMethod, phone || '', {
+        force: true,
+        clearAuth: clearAuthOnStart,
+    });
+
+    res.json({ success: true, message: 'Started connection process' });
 });
 
 app.post('/api/logout', async (req, res) => {
-    console.log("[BOT] Demande de déconnexion et réinitialisation de la session.");
+    console.log('[BOT] Déconnexion et réinitialisation.');
+    cancelScheduledReconnect();
+    reconnectAttempts = 0;
+    isLinking = false;
+    qrError = null;
+
     if (sock) {
         try {
             await sock.logout();
         } catch (e) {
-            console.warn("[BOT] Échec du logout du socket (déjà déconnecté ou inexistant) :", e.message);
+            console.warn('[BOT] Logout socket :', e.message);
         }
-        isConnected = false;
-        currentQrBase64 = null;
-        pairingCode = null;
-        sock = null;
     }
+    await destroySocket();
+    isConnected = false;
+    currentQrBase64 = null;
+    pairingCode = null;
 
     if (fs.existsSync('auth_info_baileys')) {
         try {
             fs.rmSync('auth_info_baileys', { recursive: true, force: true });
-            console.log("[BOT] Suppression forcée du dossier de session effectuée.");
+            console.log('[BOT] Dossier session supprimé.');
         } catch (err) {
             console.error("[BOT] Impossible de supprimer le dossier de session :", err);
         }
