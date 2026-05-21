@@ -38,7 +38,7 @@ export default async function AdminInvoicesPage() {
             <Tbody>
               {invoices.map((i) => {
                 const clientName = i.pro?.company || i.customer?.name || "—";
-                const clientType = i.proId ? "Pro 💼" : "Particulier 🍪";
+                const clientType = i.proId ? "Pro 💼" : "—";
                 return (
                   <Tr key={i.id}>
                     <Td className="font-mono text-[0.85rem]">{i.id}</Td>

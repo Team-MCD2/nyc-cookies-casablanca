@@ -23,7 +23,7 @@ interface UserMenuProps {
 const ROLE_META: Record<Role, { label: string; variant: "danger" | "accent" | "info" }> = {
   admin: { label: "Admin", variant: "danger" },
   pro:   { label: "Pro",   variant: "accent" },
-  b2c:   { label: "Client", variant: "info"  },
+  b2c:   { label: "Sans accès pro", variant: "info"  },
 };
 
 export function UserMenu({ user, spaceHref, spaceLabel }: UserMenuProps) {

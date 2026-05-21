@@ -81,7 +81,7 @@ interface ProductCardProps {
 }
 
 /** Public product card with thumbnail, name, desc, price, CTA. */
-export function ProductCard({ product, ctaHref = "/shop", ctaLabel = "Commander", footerSlot }: ProductCardProps) {
+export function ProductCard({ product, ctaHref = "/devenir-pro", ctaLabel = "Commander en pro", footerSlot }: ProductCardProps) {
   return (
     <article className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-[transform,border-color,box-shadow] duration-base hover:-translate-y-1 hover:border-accent hover:shadow-elev-lg">
       <ProductThumb product={product} />

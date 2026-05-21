@@ -32,6 +32,13 @@ if (existsSync(envPath)) {
 const email = process.argv[2]?.trim() || "nyccookies.casa@gmail.com";
 const password = process.argv[3] || "nyc2026";
 
+/** Clerk exige parfois un username selon la config de l'instance. */
+function usernameFromEmail(addr) {
+  const local = (addr.split("@")[0] ?? "admin").toLowerCase();
+  const base = local.replace(/[^a-z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+  return (base || "nyc_admin").slice(0, 32);
+}
+
 const secretKey = process.env.CLERK_SECRET_KEY;
 if (!secretKey || !secretKey.startsWith("sk_")) {
   console.error("✗ CLERK_SECRET_KEY manquant ou invalide dans .env.local");
@@ -64,16 +71,22 @@ if (existing) {
   process.exit(0);
 }
 
+const username = usernameFromEmail(email);
+
 const user = await clerk.users.createUser({
   emailAddress: [email],
+  username,
   password,
   skipPasswordChecks: true,
+  firstName: "NYC",
+  lastName: "Cookies",
   publicMetadata: { role: "admin" },
 });
 
 console.log(`
 ✓ Compte admin créé
   email     : ${email}
+  username  : ${username}
   user_id   : ${user.id}
   rôle      : admin
   connexion : https://nyc-cookies-casablanca.vercel.app/login

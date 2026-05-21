@@ -317,7 +317,7 @@ function getMenuText() {
         '• `.authorise NUMERO` — Autoriser un admin',
         '• `.unauthorise NUMERO` — Retirer l\'autorisation',
         '',
-        '*Notifications auto :* nouvelles commandes · demandes pro',
+        '*Notifications auto :* nouvelles commandes pro · demandes compte pro',
         '',
         '*Exemples :*',
         '`.commande ord_2026_0042`',
@@ -546,14 +546,17 @@ function formatProRequestsList(data) {
     return lines.join('\n');
 }
 
-async function sendMenu(jid) {
-    const caption = getMenuText();
-    const logo = await getMenuLogoBuffer();
-    if (logo) {
-        await sock.sendMessage(jid, { image: logo, caption });
+async function sendTextWithLogo(jid, text, logo = null) {
+    const img = logo ?? (await getMenuLogoBuffer());
+    if (img) {
+        await sock.sendMessage(jid, { image: img, caption: text });
     } else {
-        await sock.sendMessage(jid, { text: caption });
+        await sock.sendMessage(jid, { text });
     }
+}
+
+async function sendMenu(jid) {
+    await sendTextWithLogo(jid, getMenuText());
 }
 
 function parseCommandPhone(text, commandBase) {
@@ -635,7 +638,7 @@ async function handleIncomingMessages(m) {
 
             if (!isCommand) continue;
 
-            const cmd = cleanText.split(/\s+/)[0].replace(/[(:].*$/, '');
+            const cmd = cleanText.split(/\s+/)[0].split('(')[0].split(':')[0];
 
             if (cmd === '.menu') {
                 await sendMenu(sender);
@@ -809,17 +812,21 @@ async function handleIncomingMessages(m) {
             } else if (cleanText.startsWith('.ping')) {
                 await sock.sendMessage(sender, { text: '🤖 Bot est actif et connecté! Pong! ✅' });
                 console.log(`[BOT] Réponse .ping envoyée à ${sender}`);
-            } else if (cleanText.startsWith('.creneau')) {
-                const parts = text.trim().split(' ');
-                if (parts.length === 2 && /^\d{2}:\d{2}$/.test(parts[1])) {
-                    botConfig.cronTime = parts[1];
+            } else if (cmd === '.creneau') {
+                const timeMatch = text.trim().match(/\.creneau\s*:?\s*(\d{1,2}:\d{2})/i);
+                if (timeMatch) {
+                    const [, h, m] = timeMatch[1].match(/^(\d{1,2}):(\d{2})$/) || [];
+                    const normalized = `${h.padStart(2, '0')}:${m}`;
+                    botConfig.cronTime = normalized;
                     saveConfig();
                     setupCron();
                     await sock.sendMessage(sender, {
                         text: `✅ Créneau d'envoi : ${botConfig.cronTime} (heure du Maroc — ${CRON_TIMEZONE})`,
                     });
                 } else {
-                    await sock.sendMessage(sender, { text: '❌ Format invalide. Utilisez: .creneau HH:mm\nExemple: .creneau 15:00' });
+                    await sock.sendMessage(sender, {
+                        text: `❌ Format invalide. Utilisez: .creneau HH:mm\nExemple: .creneau 15:00\nActuel : ${botConfig.cronTime}`,
+                    });
                 }
             } else if (cleanText === '.pro') {
                 try {
@@ -1123,6 +1130,11 @@ function setupCron() {
 
             console.log(`[CRON] Found ${pros.length} active pros to message.`);
 
+            const logo = await getMenuLogoBuffer();
+            if (!logo) {
+                console.warn('[CRON] Logo NYC introuvable — envoi texte seul.');
+            }
+
             for (const pro of pros) {
                 if (!pro.phone) continue;
 
@@ -1130,7 +1142,7 @@ function setupCron() {
                 const jid = `${cleanNumber}@s.whatsapp.net`;
                 const message = `Bonjour ${pro.contact_name},\n\nC'est l'heure de commander vos NYC Cookies pour demain ! 🍪\n\nPassez commande directement sur votre espace pro :\n${SITE_URL}/pro/dashboard\n\nMerci et bonne soirée !`;
 
-                await sock.sendMessage(jid, { text: message });
+                await sendTextWithLogo(jid, message, logo);
                 console.log(`[CRON] Sent message to ${pro.company} (${pro.phone})`);
 
                 await new Promise(resolve => setTimeout(resolve, 2000));

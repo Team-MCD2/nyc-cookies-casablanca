@@ -36,14 +36,13 @@ export const SITE = {
 export const PUBLIC_NAV = [
   { href: "/#products", label: "Cookies" },
   { href: "/#story", label: "Notre histoire" },
-  { href: "/pro", label: "Espace Pros" },
-  { href: "/shop", label: "Boutique" },
+  { href: "/#pro", label: "Espace Pros" },
+  { href: "/devenir-pro", label: "Devenir client pro" },
 ] as const;
 
-export const SHOP_LINKS = [
-  { href: "/shop", label: "Tous les cookies" },
-  { href: "/shop?cat=box", label: "Boxes" },
-  { href: "/shop?cat=icecream", label: "Cookie Ice Cream" },
+export const PRO_LINKS = [
+  { href: "/login", label: "Connexion pro" },
+  { href: "/devenir-pro", label: "Demande de compte" },
 ] as const;
 
 export const ADMIN_NAV = [
@@ -61,7 +60,6 @@ export const ADMIN_NAV = [
   {
     label: "Clientèle",
     links: [
-      { href: "/admin/customers", icon: "users", text: "Clients B2C" },
       { href: "/admin/pros", icon: "briefcase", text: "Clients Pros" },
       { href: "/admin/invoices", icon: "file-text", text: "Factures" },
     ],

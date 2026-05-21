@@ -20,7 +20,6 @@ export default async function AdminUsersPage() {
     total: users.length,
     admin: users.filter((u) => u.role === "admin").length,
     pro: users.filter((u) => u.role === "pro").length,
-    b2c: users.filter((u) => u.role === "b2c").length,
   };
 
   return (
@@ -31,7 +30,7 @@ export default async function AdminUsersPage() {
         subtitle={
           listError
             ? "Impossible de récupérer la liste des utilisateurs Clerk."
-            : `${counts.total} compte${counts.total > 1 ? "s" : ""} · ${counts.admin} admin · ${counts.pro} pro · ${counts.b2c} client${counts.b2c > 1 ? "s" : ""}.`
+            : `${counts.total} compte${counts.total > 1 ? "s" : ""} · ${counts.admin} admin · ${counts.pro} pro.`
         }
       />
 

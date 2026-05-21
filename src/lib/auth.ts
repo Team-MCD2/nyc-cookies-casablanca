@@ -21,7 +21,7 @@ function coerceRole(value: unknown): Role | null {
  *  2. Fallback to currentUser().publicMetadata.role (one extra Clerk fetch,
  *     but works even when no custom claim is configured).
  *
- * Default = "b2c" for any signed-in user without a role assigned.
+ * Sans rôle explicite, l'utilisateur n'a pas accès aux espaces pro/admin.
  */
 export async function getCurrentSession() {
   const { userId, sessionClaims } = await auth();
@@ -37,6 +37,11 @@ export async function getCurrentSession() {
     (user?.publicMetadata as { role?: unknown } | undefined)?.role,
   );
   return { userId, role: fromMetadata ?? "b2c" };
+}
+
+/** Compte sans rôle pro/admin (legacy b2c ou inscription sans invitation). */
+export function isRetailRole(role: Role) {
+  return role === "b2c";
 }
 
 /** Redirect helper — sends to login if not authenticated. */
@@ -56,7 +61,7 @@ export async function requireRole(allowed: Role[]) {
 export function roleHome(role: Role) {
   if (role === "admin") return "/admin/dashboard";
   if (role === "pro") return "/pro/dashboard";
-  return "/account";
+  return "/devenir-pro";
 }
 
 /** Lookup the customer/pro row matching the current Clerk user. */

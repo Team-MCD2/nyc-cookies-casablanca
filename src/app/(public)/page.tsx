@@ -68,9 +68,9 @@ export default async function LandingPage() {
               Épais, fondants, et terriblement gourmands. Chaque fournée est une promesse de pur plaisir.
             </p>
             <div className="flex flex-wrap gap-6 justify-center lg:justify-start pt-6 opacity-0 animate-in fade-in slide-in-from-bottom duration-1000 delay-1000 fill-mode-forwards">
-              <Link href="/shop">
+              <Link href="/login">
                 <Button size="lg" className="h-16 px-12 text-xl shine-effect rounded-full group">
-                  Commander <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-2 transition-transform" />
+                  Espace Pro <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                 </Button>
               </Link>
               <Link href="#pro">
@@ -113,9 +113,9 @@ export default async function LandingPage() {
               <Eyebrow>Nos Incontournables</Eyebrow>
               <h2 className="text-6xl md:text-8xl mt-4 text-reveal cursor-default">La Collection <span className="italic text-accent">Signature</span></h2>
             </div>
-            <Link href="/shop">
+            <Link href="/devenir-pro">
               <Button variant="ghost" className="text-accent hover:text-accent-hover gap-3 text-xl group">
-                Toute la carte <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
+                Devenir client pro <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
               </Button>
             </Link>
           </div>
@@ -423,9 +423,9 @@ export default async function LandingPage() {
         </div>
         <div className="container relative z-10 stack-xl items-center">
           <h2 className="text-6xl md:text-[12rem] leading-[0.8] tracking-tighter">FAITES-VOUS <br />PLAISIR.</h2>
-          <Link href="/shop" className="w-full max-w-sm mx-auto">
+          <Link href="/login" className="w-full max-w-sm mx-auto">
             <Button size="lg" variant="secondary" className="bg-white text-accent hover:bg-black hover:text-white h-16 md:h-24 w-full px-8 md:px-20 text-xl md:text-3xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-500 hover:scale-105 active:scale-95">
-              COMMANDER EN 2 CLICS
+              ESPACE PRO
             </Button>
           </Link>
         </div>

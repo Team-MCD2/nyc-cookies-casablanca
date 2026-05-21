@@ -88,24 +88,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Default to B2C Customer if no token or token invalid
-    const email = evt.data.email_addresses?.[0]?.email_address;
-    const name = [evt.data.first_name, evt.data.last_name].filter(Boolean).join(' ') || email;
-
-    const { error: custError } = await sb.from('customers').insert({
-      clerk_user_id: id,
-      email: email,
-      name: name,
-    });
-
-    if (custError) {
-      console.error("Failed to create customer:", custError);
-    } else {
-      // Set default role to B2C
-      await clerk.users.updateUserMetadata(id!, {
-        publicMetadata: { role: 'b2c' }
-      });
-    }
+    // Inscription sans invitation : pas de compte particulier (plateforme pro/admin uniquement)
+    console.log(
+      `[Clerk] user.created sans invitation — aucun profil pro créé (${evt.data.email_addresses?.[0]?.email_address ?? id})`,
+    );
   }
 
   return new Response('', { status: 200 });

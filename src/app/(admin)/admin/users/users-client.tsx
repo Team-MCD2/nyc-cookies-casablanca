@@ -21,7 +21,7 @@ type RoleFilter = "all" | Role;
 const ROLE_META: Record<Role, { label: string; variant: "danger" | "accent" | "info"; icon: React.FC<{ className?: string }> }> = {
   admin: { label: "Admin", variant: "danger", icon: ShieldCheck },
   pro:   { label: "Pro",   variant: "accent", icon: Briefcase },
-  b2c:   { label: "Client", variant: "info",  icon: UserIcon },
+  b2c:   { label: "Sans accès", variant: "info",  icon: UserIcon },
 };
 
 interface PendingRoleChange {
@@ -65,7 +65,7 @@ export function UsersClient({ users, currentUserId }: Props) {
           />
         </div>
         <div className="flex items-center gap-1 rounded-full border border-border bg-surface-2 p-1 text-[0.85rem]">
-          {(["all", "admin", "pro", "b2c"] as const).map((f) => (
+          {(["all", "admin", "pro"] as const).map((f) => (
             <button
               key={f}
               type="button"
@@ -215,7 +215,7 @@ function RoleSwitcher({
   disabled: boolean;
   onChange: (role: Role) => void;
 }) {
-  const roles: Role[] = ["admin", "pro", "b2c"];
+  const roles: Role[] = ["admin", "pro"];
   return (
     <div className="inline-flex items-center overflow-hidden rounded-full border border-border bg-surface-2 text-[0.78rem]">
       {roles.map((r) => {

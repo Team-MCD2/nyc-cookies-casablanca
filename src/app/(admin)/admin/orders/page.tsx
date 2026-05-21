@@ -38,9 +38,11 @@ export default async function AdminOrdersPage() {
                   <Td className="font-mono text-[0.85rem]">{o.id}</Td>
                   <Td>{formatDate(o.date)}</Td>
                   <Td>
-                    <Badge variant={o.customerType === "pro" ? "accent" : "info"}>
-                      {o.customerType.toUpperCase()}
-                    </Badge>
+                    {o.customerType === "pro" ? (
+                      <Badge variant="accent">PRO</Badge>
+                    ) : (
+                      <span className="text-text-3 text-xs">—</span>
+                    )}
                   </Td>
                   <Td className="text-right tabular-nums">{money(o.total)}</Td>
                   <Td>

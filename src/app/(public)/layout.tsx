@@ -3,7 +3,6 @@ import { PublicFooter } from "@/components/layout/public-footer";
 import { currentUser } from "@clerk/nextjs/server";
 import {
   consumePendingInvitation,
-  ensureCustomerRow,
   ensureProRow,
   getCurrentSession,
   roleHome,
@@ -17,23 +16,22 @@ export default async function PublicLayout({ children }: { children: React.React
   const session = await getCurrentSession();
   // Side-effects: lazily provision the matching Supabase row so the user
   // shows up immediately in the admin tables.
-  if (session?.role === "b2c") {
-    await ensureCustomerRow().catch(() => undefined);
-  } else if (session?.role === "pro") {
+  if (session?.role === "pro") {
     await ensureProRow().catch(() => undefined);
   }
-  const role = session?.role ?? "b2c";
 
-  const spaceHref = session ? roleHome(role) : "/login";
+  const role = session?.role;
+  const spaceHref =
+    session && role && role !== "b2c" ? roleHome(role) : "/login";
   const spaceLabel =
-    role === "admin" ? "Console Admin" : role === "pro" ? "Espace Pro" : "Mon compte";
+    role === "admin" ? "Console Admin" : role === "pro" ? "Espace Pro" : "Connexion";
 
   const clerkUser = session ? await currentUser() : null;
   const user = clerkUser
     ? {
         name: clerkUser.fullName ?? clerkUser.firstName ?? null,
         email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
-        role,
+        role: role ?? "b2c",
       }
     : null;
 

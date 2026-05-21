@@ -6,10 +6,9 @@ import { useState } from "react";
 import { ShoppingBag, Menu, X, LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PUBLIC_NAV, SITE } from "@/lib/site";
+import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
-
-type Role = "admin" | "pro" | "b2c";
 
 interface PublicHeaderProps {
   /** Authenticated user (null when signed out). */
@@ -25,8 +24,8 @@ interface PublicHeaderProps {
 
 export function PublicHeader({
   user = null,
-  spaceHref = "/shop",
-  spaceLabel = "Mon espace",
+  spaceHref = "/login",
+  spaceLabel = "Connexion",
 }: PublicHeaderProps) {
   const [open, setOpen] = useState(false);
 
@@ -77,17 +76,17 @@ export function PublicHeader({
                   <LogIn className="h-4 w-4" /> Connexion
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href="/devenir-pro">
                 <Button variant="ghost" size="sm">
-                  <UserPlus className="h-4 w-4" /> S'inscrire
+                  <UserPlus className="h-4 w-4" /> Devenir pro
                 </Button>
               </Link>
             </div>
           )}
-          <Link href="/shop">
+          <Link href="/login">
             <Button variant="primary" size="sm">
               <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Commander</span>
+              <span className="hidden sm:inline">Espace Pro</span>
             </Button>
           </Link>
           <button
@@ -128,11 +127,11 @@ export function PublicHeader({
               Connexion
             </Link>
             <Link
-              href="/signup"
+              href="/devenir-pro"
               onClick={() => setOpen(false)}
               className="text-[0.95rem] text-text-2 hover:text-accent"
             >
-              S'inscrire
+              Devenir client pro
             </Link>
           </div>
         )}

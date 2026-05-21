@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 // IMPORTANT: do NOT use "/pro(.*)" — that pattern also matches "/pro-invite"
 // (the public Clerk SignUp page used by invited pros). When that page is
@@ -13,6 +14,16 @@ const isProtectedRoute = createRouteMatcher([
   "/pro/(.*)",
 ]);
 
+/** Boutique et espace particulier désactivés — plateforme réservée aux pros et admins. */
+const isRetiredPublicRoute = createRouteMatcher([
+  "/shop",
+  "/shop/(.*)",
+  "/account",
+  "/account/(.*)",
+  "/admin/customers",
+  "/admin/customers/(.*)",
+]);
+
 /**
  * Clerk middleware: gates /admin and /pro behind authentication only.
  *
@@ -22,6 +33,14 @@ const isProtectedRoute = createRouteMatcher([
  * "Customize session token" claim is configured.
  */
 export default clerkMiddleware(async (auth, req) => {
+  if (isRetiredPublicRoute(req)) {
+    const url = new URL(req.url);
+    if (url.pathname.startsWith("/admin/customers")) {
+      return NextResponse.redirect(new URL("/admin/pros", req.url));
+    }
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
   if (!isProtectedRoute(req)) return;
   const { userId, redirectToSignIn } = await auth();
   if (!userId) return redirectToSignIn({ returnBackUrl: req.url });

@@ -123,7 +123,7 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
   revalidatePath("/admin/orders");
   revalidatePath(isPro ? "/pro/orders" : "/shop");
 
-  const clientType = isPro ? "Professionnel 💼" : "Particulier 🍪";
+  const clientType = "Professionnel 💼";
   const adminUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
   const orderMessage = `🔔 *NYC Cookies Casablanca*\n\n🛒 *Nouvelle commande* (${clientType})\n\n*Référence :* ${reference}\n*Montant :* ${total} MAD\n\n👉 ${adminUrl}/admin/orders`;
   await notifyAdmins(orderMessage);

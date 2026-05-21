@@ -14,12 +14,11 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
   const customer = invoice.customer;
   const order = invoice.order;
 
-  // Client resolution B2B or B2C
-  const clientName = pro?.company || customer?.name || "Client Particulier";
+  const clientName = pro?.company || customer?.name || "Client";
   const clientContact = pro ? pro.contactName : (customer?.name || "—");
   const clientEmail = pro?.email || customer?.email || "—";
   const clientPhone = pro?.phone || customer?.phone || "—";
-  const clientAddress = pro?.address || "Particulier — Casablanca";
+  const clientAddress = pro?.address || "—";
   const clientIce = pro?.ice || null;
 
   // VAT Logic: only if pro has ICE

@@ -42,7 +42,7 @@ const BOT_COMMANDS = [
 ] as const;
 
 const AUTO_NOTIFICATIONS = [
-  "Nouvelle commande (B2C ou Pro)",
+  "Nouvelle commande pro",
   "Nouvelle demande de compte Pro",
 ] as const;
 

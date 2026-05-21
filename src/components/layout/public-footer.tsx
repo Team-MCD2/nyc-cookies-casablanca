@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Instagram, Facebook, MessageCircle, ArrowUpRight } from "lucide-react";
-import { SITE, PUBLIC_NAV, SHOP_LINKS } from "@/lib/site";
+import { SITE, PUBLIC_NAV, PRO_LINKS } from "@/lib/site";
 
 export function PublicFooter() {
   const year = new Date().getFullYear();
@@ -73,13 +73,13 @@ export function PublicFooter() {
           </ul>
         </div>
 
-        {/* Boutique + Contact */}
+        {/* Espace pro + Contact */}
         <div>
           <h4 className="mb-4 font-display text-[0.95rem] uppercase tracking-[0.18em] text-accent">
-            La boutique
+            Espace professionnel
           </h4>
           <ul className="space-y-1">
-            {SHOP_LINKS.map((i) => (
+            {PRO_LINKS.map((i) => (
               <li key={i.href} className="py-1">
                 <Link href={i.href} className="text-[0.92rem] text-text-2 hover:text-accent">
                   {i.label}
