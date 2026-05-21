@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Label, Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Save, Smartphone, QrCode, Play } from "lucide-react";
+import { RefreshCw, LogOut, Save, Smartphone, QrCode, Play, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/toaster";
 
 type BotStatus = {
@@ -14,6 +14,9 @@ type BotStatus = {
   qr: string | null;
   pairingCode: string | null;
   cronTime: string;
+  mandatoryPhone?: string;
+  additionalPhones?: string[];
+  authorizedPhones?: string[];
   authorizedPhone?: string;
 };
 
@@ -38,9 +41,7 @@ export default function WhatsAppAdminPage() {
         if (!cronTimeInput && data.cronTime) {
           setCronTimeInput(data.cronTime);
         }
-        if (data.authorizedPhone !== undefined) {
-          setAuthorizedPhoneInput(data.authorizedPhone);
-        }
+        setAuthorizedPhoneInput("");
         if (showToast) toast({ title: "Statut mis à jour", type: "success" });
       } else {
         setStatus(null);
@@ -118,10 +119,14 @@ export default function WhatsAppAdminPage() {
     }
   }
 
-  async function saveAuthorizedPhone() {
+  async function addAuthorizedPhone() {
     const normalized = authorizedPhoneInput.replace(/\D/g, "");
     if (!normalized || normalized.length < 9) {
       toast({ title: "Erreur", message: "Entrez un numéro valide (ex: 212612345678).", type: "danger" });
+      return;
+    }
+    if (normalized === status?.mandatoryPhone) {
+      toast({ title: "Info", message: "Ce numéro est déjà autorisé en permanence.", type: "default" });
       return;
     }
     setActionLoading(true);
@@ -129,14 +134,64 @@ export default function WhatsAppAdminPage() {
       const res = await fetch("/api/admin/whatsapp?action=set-authorized-phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: normalized })
+        body: JSON.stringify({ phone: normalized }),
       });
       if (res.ok) {
-        toast({ title: "Numéro enregistré", message: "Seul ce numéro pourra utiliser .ping et .creneau.", type: "success" });
+        setAuthorizedPhoneInput("");
+        toast({ title: "Numéro ajouté", message: `${normalized} peut utiliser les commandes du bot.`, type: "success" });
         await fetchStatus();
       } else {
         const data = await res.json();
-        toast({ title: "Erreur", message: data.error || "Impossible d'enregistrer.", type: "danger" });
+        toast({ title: "Erreur", message: data.error || "Impossible d'ajouter.", type: "danger" });
+      }
+    } catch {
+      toast({ title: "Erreur", message: "Le bot est inaccessible.", type: "danger" });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function removeAuthorizedPhone(phone: string) {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/whatsapp?action=remove-authorized-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      if (res.ok) {
+        toast({ title: "Numéro retiré", message: phone, type: "success" });
+        await fetchStatus();
+      } else {
+        const data = await res.json();
+        toast({ title: "Erreur", message: data.error || "Impossible de retirer.", type: "danger" });
+      }
+    } catch {
+      toast({ title: "Erreur", message: "Le bot est inaccessible.", type: "danger" });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function clearAdditionalPhones() {
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/admin/whatsapp?action=clear-authorized-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        setAuthorizedPhoneInput("");
+        toast({
+          title: "Liste vidée",
+          message: `Les numéros additionnels ont été retirés. ${status?.mandatoryPhone} reste toujours autorisé.`,
+          type: "success",
+        });
+        await fetchStatus();
+      } else {
+        const data = await res.json();
+        toast({ title: "Erreur", message: data.error || "Impossible de supprimer.", type: "danger" });
       }
     } catch {
       toast({ title: "Erreur", message: "Le bot est inaccessible.", type: "danger" });
@@ -292,25 +347,76 @@ export default function WhatsAppAdminPage() {
           <h2 className="font-display text-xl">Configuration</h2>
 
           <div className="flex flex-col gap-4">
+            {status?.mandatoryPhone && (
+              <div className="rounded-md border border-accent/30 bg-accent/10 p-3">
+                <p className="text-xs text-text-3 mb-1">Numéro obligatoire (toujours autorisé)</p>
+                <p className="font-mono font-semibold text-accent">{status.mandatoryPhone}</p>
+              </div>
+            )}
+
             <Field>
-              <Label>Numéro admin autorisé (commandes)</Label>
+              <Label>Ajouter un numéro autorisé</Label>
               <Input
                 placeholder="212612345678"
                 value={authorizedPhoneInput}
                 onChange={e => setAuthorizedPhoneInput(e.target.value)}
               />
               <p className="text-xs text-text-3 mt-1">
-                Votre numéro personnel : seul lui pourra envoyer .ping et .creneau au bot (différent du numéro du bot).
+                Numéros pouvant utiliser .ping, .pro, .creneau, etc. (en plus du numéro obligatoire).
               </p>
             </Field>
-            <Button
-              onClick={saveAuthorizedPhone}
-              disabled={actionLoading || !authorizedPhoneInput || !status}
-              variant="primary"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Enregistrer le numéro autorisé
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={addAuthorizedPhone}
+                disabled={actionLoading || !authorizedPhoneInput || !status}
+                variant="primary"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Ajouter
+              </Button>
+              <Button
+                onClick={clearAdditionalPhones}
+                disabled={
+                  actionLoading ||
+                  !status ||
+                  !(status.additionalPhones && status.additionalPhones.length > 0)
+                }
+                variant="danger"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Tout supprimer (sauf obligatoire)
+              </Button>
+            </div>
+
+            {status?.authorizedPhones && status.authorizedPhones.length > 0 && (
+              <ul className="space-y-2">
+                <p className="text-xs font-medium text-text-2">Numéros autorisés actuellement</p>
+                {status.authorizedPhones.map((num) => {
+                  const isMandatory = num === status.mandatoryPhone;
+                  return (
+                    <li
+                      key={num}
+                      className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface-2 px-3 py-2"
+                    >
+                      <span className="font-mono text-sm">{num}</span>
+                      {isMandatory ? (
+                        <Badge variant="success">Obligatoire</Badge>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-danger hover:bg-danger-soft"
+                          disabled={actionLoading}
+                          onClick={() => removeAuthorizedPhone(num)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
 
           <hr className="border-border" />

