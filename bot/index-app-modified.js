@@ -157,38 +157,93 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
 
         sock.ev.on('creds.update', saveCreds);
 
+        // Debug: Log all events
+        sock.ev.on('*', async (event) => {
+            if (event[0] !== 'connection.update' && event[0] !== 'creds.update') {
+                console.log('[BOT] Événement reçu:', event[0]);
+            }
+        });
+
         // Handle incoming messages
         sock.ev.on('messages.upsert', async (m) => {
-            console.log('[BOT] Nouveaux messages reçus');
+            console.log('[BOT] Event messages.upsert déclenché');
+            console.log('[BOT] Type:', m.type);
+            console.log('[BOT] Nombre de messages:', m.messages?.length || 0);
+            
+            if (!m.messages || m.messages.length === 0) {
+                console.log('[BOT] Aucun message à traiter');
+                return;
+            }
             
             for (const msg of m.messages) {
                 try {
-                    if (!msg.message) continue; // Ignore les messages vides
+                    console.log('[BOT] Traitement du message:', JSON.stringify(msg.key, null, 2));
                     
-                    const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-                    if (!text) continue;
+                    if (!msg.message) {
+                        console.log('[BOT] Message vide, skipping');
+                        continue;
+                    }
+                    
+                    // Extract text from different message types
+                    let text = '';
+                    if (msg.message.conversation) {
+                        text = msg.message.conversation;
+                    } else if (msg.message.extendedTextMessage?.text) {
+                        text = msg.message.extendedTextMessage.text;
+                    } else if (msg.message.text) {
+                        text = msg.message.text;
+                    }
+                    
+                    if (!text) {
+                        console.log('[BOT] Pas de texte trouvé');
+                        continue;
+                    }
                     
                     const sender = msg.key.remoteJid;
                     const isFromMe = msg.key.fromMe;
                     
-                    if (isFromMe) continue; // Ignore nos propres messages
+                    console.log(`[BOT] Message complet: fromMe=${isFromMe}, text="${text}", sender=${sender}`);
                     
-                    console.log(`[BOT] Message de ${sender}: ${text}`);
+                    if (isFromMe) {
+                        console.log('[BOT] Message de nous-même, ignoring');
+                        continue;
+                    }
                     
-                    // Parse commands
-                    if (text.startsWith('.ping')) {
-                        console.log(`[BOT] Commande .ping reçue de ${sender}`);
-                        await sock.sendMessage(sender, { text: '🤖 Bot est actif et connecté! Pong! ✅' });
-                    } else if (text.startsWith('.creneau')) {
-                        const parts = text.split(' ');
+                    console.log(`[BOT] Message reçu de ${sender}: ${text}`);
+                    
+                    // Parse commands - trim and lowercase
+                    const cleanText = text.trim().toLowerCase();
+                    
+                    if (cleanText.startsWith('.ping')) {
+                        console.log(`[BOT] Commande .ping détectée de ${sender}`);
+                        try {
+                            await sock.sendMessage(sender, { text: '🤖 Bot est actif et connecté! Pong! ✅' });
+                            console.log(`[BOT] Réponse .ping envoyée à ${sender}`);
+                        } catch (sendErr) {
+                            console.error(`[BOT] Erreur lors de l'envoi de la réponse .ping:`, sendErr);
+                        }
+                    } else if (cleanText.startsWith('.creneau')) {
+                        const parts = text.trim().split(' ');
+                        console.log(`[BOT] Commande .creneau détectée, parts:`, parts);
+                        
                         if (parts.length === 2 && /^\d{2}:\d{2}$/.test(parts[1])) {
                             botConfig.cronTime = parts[1];
                             saveConfig();
                             setupCron();
                             console.log(`[BOT] Créneau changé à ${botConfig.cronTime} par ${sender}`);
-                            await sock.sendMessage(sender, { text: `✅ Créneau d'envoi changé à ${botConfig.cronTime}` });
+                            try {
+                                await sock.sendMessage(sender, { text: `✅ Créneau d'envoi changé à ${botConfig.cronTime}` });
+                                console.log(`[BOT] Confirmation .creneau envoyée`);
+                            } catch (sendErr) {
+                                console.error(`[BOT] Erreur lors de l'envoi de la confirmation .creneau:`, sendErr);
+                            }
                         } else {
-                            await sock.sendMessage(sender, { text: '❌ Format invalide. Utilisez: .creneau HH:mm\nExemple: .creneau 15:00' });
+                            console.log(`[BOT] Format invalide pour .creneau`);
+                            try {
+                                await sock.sendMessage(sender, { text: '❌ Format invalide. Utilisez: .creneau HH:mm\nExemple: .creneau 15:00' });
+                            } catch (sendErr) {
+                                console.error(`[BOT] Erreur lors de l'envoi du message d'erreur:`, sendErr);
+                            }
                         }
                     }
                 } catch (err) {
