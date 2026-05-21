@@ -405,6 +405,9 @@ export default function WhatsAppAdminPage() {
           <div className="rounded-md border border-border bg-surface-2 p-4 text-sm text-text-2">
             <p className="font-medium text-text mb-2">Commandes WhatsApp (numéro autorisé)</p>
             <ul className="list-disc pl-5 space-y-1 text-text-3">
+              <li><code className="text-accent">.menu</code> — liste des commandes (avec logo NYC)</li>
+              <li><code className="text-accent">.authorise NUMERO</code> — autoriser un numéro</li>
+              <li><code className="text-accent">.unauthorise NUMERO</code> — retirer un numéro</li>
               <li><code className="text-accent">.pro</code> — liste des clients pro avec numéros</li>
               <li><code className="text-accent">.prosend 212612345678 : Message</code> — message personnalisé à un pro</li>
               <li><code className="text-accent">.ping</code> — test de connexion</li>

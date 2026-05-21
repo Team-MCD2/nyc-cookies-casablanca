@@ -31,13 +31,20 @@ function normalizePhone(input) {
 
 /** Numéro admin obligatoire — toujours autorisé, non supprimable */
 const MANDATORY_ADMIN_PHONE = normalizePhone(
-    process.env.MANDATORY_ADMIN_PHONE || '337626414723'
+    process.env.MANDATORY_ADMIN_PHONE || '33762641473'
 );
+
+/** Cache LID → numéro (WhatsApp 7 utilise parfois @lid au lieu du numéro) */
+const lidPhoneCache = new Map();
 
 let botConfig = { cronTime: "20:00", authorizedPhones: [] };
 
 function saveConfig() {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(botConfig, null, 2));
+}
+
+function isValidPhoneDigits(digits) {
+    return digits.length >= 9 && digits.length <= 13;
 }
 
 function migrateConfig(parsed) {
@@ -53,7 +60,9 @@ function migrateConfig(parsed) {
         }
     }
 
-    authorizedPhones = authorizedPhones.filter(p => p !== MANDATORY_ADMIN_PHONE);
+    authorizedPhones = authorizedPhones
+        .filter(p => p !== MANDATORY_ADMIN_PHONE)
+        .filter(p => isValidPhoneDigits(p));
     return { cronTime, authorizedPhones };
 }
 
@@ -81,20 +90,90 @@ if (fs.existsSync(CONFIG_FILE)) {
     } catch (e) { console.error("Erreur de lecture de la config", e); }
 }
 
-function getMessagePhone(msg) {
-    const jid = msg.key.participant || msg.key.remoteJid;
-    return normalizePhone(jid);
+function isPnJid(jid) {
+    const s = String(jid || '');
+    return s.includes('@s.whatsapp.net') || s.endsWith('@c.us');
+}
+
+function isLidJid(jid) {
+    return String(jid || '').includes('@lid');
+}
+
+function storeLidMapping(lid, pn) {
+    const lidKey = normalizePhone(lid);
+    const phone = normalizePhone(pn);
+    if (lidKey && phone && isValidPhoneDigits(phone)) {
+        lidPhoneCache.set(lidKey, phone);
+    }
+}
+
+function cacheLidFromMessage(key) {
+    if (!key) return;
+    const primary = key.participant || key.remoteJid;
+    const alt = key.participantAlt || key.remoteJidAlt;
+    if (primary && alt && (isLidJid(primary) || !isPnJid(primary)) && isPnJid(alt)) {
+        storeLidMapping(primary, alt);
+    }
+}
+
+function resolveSenderPhone(msg) {
+    const key = msg.key || {};
+
+    if (msg.key.fromMe) {
+        return sock?.user?.id ? normalizePhone(sock.user.id) : '';
+    }
+
+    // Baileys 7 : JID alternatif = vrai numéro quand le principal est un LID
+    for (const altJid of [key.participantAlt, key.remoteJidAlt]) {
+        if (altJid && isPnJid(altJid)) {
+            const phone = normalizePhone(altJid);
+            if (isValidPhoneDigits(phone)) return phone;
+        }
+    }
+
+    const primary = key.participant || key.remoteJid || '';
+
+    if (primary && isPnJid(primary)) {
+        const phone = normalizePhone(primary);
+        if (isValidPhoneDigits(phone)) return phone;
+    }
+
+    const lidKey = normalizePhone(primary);
+
+    if (lidKey && lidPhoneCache.has(lidKey)) {
+        return lidPhoneCache.get(lidKey);
+    }
+
+    if (sock?.signalRepository?.lidMapping?.getPNForLID) {
+        try {
+            const lidJid = isLidJid(primary)
+                ? primary
+                : `${lidKey}@lid`;
+            const pn = sock.signalRepository.lidMapping.getPNForLID(lidJid);
+            if (pn) {
+                const phone = normalizePhone(pn);
+                if (isValidPhoneDigits(phone)) {
+                    storeLidMapping(lidKey, phone);
+                    return phone;
+                }
+            }
+        } catch (e) {
+            console.warn('[BOT] getPNForLID:', e.message);
+        }
+    }
+
+    // Ne pas traiter un LID brut comme un numéro (ex: 210479888756896)
+    if (isValidPhoneDigits(lidKey) && !isLidJid(primary)) {
+        return lidKey;
+    }
+
+    return '';
 }
 
 function isSenderAuthorized(msg) {
-    const allowed = getAllAuthorizedPhones();
-    let senderPhone;
-    if (msg.key.fromMe) {
-        senderPhone = sock?.user?.id ? normalizePhone(sock.user.id) : '';
-    } else {
-        senderPhone = getMessagePhone(msg);
-    }
-    return allowed.includes(senderPhone);
+    const senderPhone = resolveSenderPhone(msg);
+    if (!senderPhone) return false;
+    return getAllAuthorizedPhones().includes(senderPhone);
 }
 
 function verifyApiSecret(req, res) {
@@ -168,6 +247,103 @@ function findProByPhone(pros, targetPhone) {
     return pros.find(p => normalizePhone(p.phone) === target);
 }
 
+const MENU_LOGO_PATH = path.join(__dirname, 'assets', 'nyclogo.png');
+
+function getMenuText() {
+    return [
+        '🍪 *NYC Cookies — Bot WhatsApp*',
+        '',
+        '*Commandes disponibles :*',
+        '',
+        '• `.menu` — Afficher ce menu',
+        '• `.ping` — Tester la connexion',
+        '• `.pro` — Liste des clients pro (numéros)',
+        '• `.prosend NUMERO : Message` — Message personnalisé à un pro',
+        '• `.creneau HH:mm` — Heure des rappels automatiques',
+        '• `.authorise NUMERO` — Autoriser un numéro admin',
+        '• `.unauthorise NUMERO` — Retirer l\'autorisation d\'un numéro',
+        '',
+        '*Exemples :*',
+        '`.authorise 212612345678`',
+        '`.authorise(33762641473)`',
+        '`.prosend 212612345678 : Bonjour !`',
+    ].join('\n');
+}
+
+async function getMenuLogoBuffer() {
+    if (fs.existsSync(MENU_LOGO_PATH)) {
+        return fs.readFileSync(MENU_LOGO_PATH);
+    }
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const res = await fetch(`${SITE_URL}/nyclogo.png`);
+        if (res.ok) return Buffer.from(await res.arrayBuffer());
+    } catch (e) {
+        console.warn('[BOT] Logo menu introuvable:', e.message);
+    }
+    return null;
+}
+
+async function sendMenu(jid) {
+    const caption = getMenuText();
+    const logo = await getMenuLogoBuffer();
+    if (logo) {
+        await sock.sendMessage(jid, { image: logo, caption });
+    } else {
+        await sock.sendMessage(jid, { text: caption });
+    }
+}
+
+function parseCommandPhone(text, commandBase) {
+    const trimmed = text.trim();
+    const bases = [commandBase];
+    if (commandBase === 'authorise') bases.push('authorize', 'autorise');
+    if (commandBase === 'unauthorise') bases.push('unauthorize', 'unautorise', 'désauthorise', 'desauthorise');
+
+    for (const base of bases) {
+        const patterns = [
+            new RegExp(`^\\.${base}\\s*\\((\\d{9,15})\\)`, 'i'),
+            new RegExp(`^\\.${base}\\s+(\\d{9,15})`, 'i'),
+        ];
+        for (const pattern of patterns) {
+            const match = trimmed.match(pattern);
+            if (match) return normalizePhone(match[1]);
+        }
+    }
+    return null;
+}
+
+function addAuthorizedPhone(phone) {
+    if (!isValidPhoneDigits(phone)) {
+        return { ok: false, message: '❌ Numéro invalide (9 à 13 chiffres, indicatif inclus).' };
+    }
+    if (phone === MANDATORY_ADMIN_PHONE) {
+        return { ok: true, message: 'ℹ️ Ce numéro est déjà autorisé en permanence.' };
+    }
+    if (!botConfig.authorizedPhones.includes(phone)) {
+        botConfig.authorizedPhones.push(phone);
+        saveConfig();
+        console.log(`[BOT] Numéro autorisé via commande : ${phone}`);
+    }
+    return { ok: true, message: `✅ ${phone} est maintenant autorisé.` };
+}
+
+function removeAuthorizedPhone(phone) {
+    if (!isValidPhoneDigits(phone)) {
+        return { ok: false, message: '❌ Numéro invalide (9 à 13 chiffres, indicatif inclus).' };
+    }
+    if (phone === MANDATORY_ADMIN_PHONE) {
+        return { ok: false, message: '⛔ Ce numéro ne peut pas être retiré.' };
+    }
+    if (!botConfig.authorizedPhones.includes(phone)) {
+        return { ok: false, message: `❌ ${phone} n'est pas dans la liste des numéros additionnels.` };
+    }
+    botConfig.authorizedPhones = botConfig.authorizedPhones.filter(p => p !== phone);
+    saveConfig();
+    console.log(`[BOT] Numéro retiré via commande : ${phone}`);
+    return { ok: true, message: `✅ ${phone} n'est plus autorisé.` };
+}
+
 function extractText(msg) {
     if (!msg?.message) return '';
     const contentType = getContentType(msg.message);
@@ -186,6 +362,8 @@ async function handleIncomingMessages(m) {
         try {
             if (!msg.message) continue;
 
+            cacheLidFromMessage(msg.key);
+
             const text = extractText(msg);
             if (!text) continue;
 
@@ -195,15 +373,51 @@ async function handleIncomingMessages(m) {
 
             if (!isCommand) continue;
 
+            const cmd = cleanText.split(/\s+/)[0].replace(/[(:].*$/, '');
+
+            if (cmd === '.menu') {
+                await sendMenu(sender);
+                console.log('[BOT] Menu envoyé');
+                continue;
+            }
+
             if (!isSenderAuthorized(msg)) {
-                console.log(`[BOT] Commande refusée — numéro non autorisé: ${getMessagePhone(msg) || 'inconnu'}`);
-                await sock.sendMessage(sender, { text: '⛔ Numéro non autorisé à utiliser ce bot.' });
+                const detected = resolveSenderPhone(msg);
+                const raw = normalizePhone(msg.key.participant || msg.key.remoteJid);
+                console.log(`[BOT] Commande refusée — numéro: ${detected || 'non résolu'} (jid brut: ${raw || 'inconnu'})`);
+                await sock.sendMessage(sender, {
+                    text: '⛔ Numéro non autorisé. Tapez `.menu` pour voir les commandes (si vous êtes admin).',
+                });
                 continue;
             }
 
             console.log(`[BOT] Commande autorisée de ${sender}: "${text}"`);
 
-            if (cleanText.startsWith('.ping')) {
+            if (cmd === '.authorise' || cleanText.startsWith('.authorize') || cleanText.startsWith('.autorise')) {
+                const phone = parseCommandPhone(text, 'authorise');
+                if (!phone) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Format: `.authorise NUMERO` ou `.authorise(NUMERO)`\nEx: `.authorise 212612345678`',
+                    });
+                    continue;
+                }
+                const result = addAuthorizedPhone(phone);
+                await sock.sendMessage(sender, { text: result.message });
+            } else if (
+                cmd === '.unauthorise' ||
+                cleanText.startsWith('.unauthorize') ||
+                cleanText.startsWith('.unautorise')
+            ) {
+                const phone = parseCommandPhone(text, 'unauthorise');
+                if (!phone) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Format: `.unauthorise NUMERO` ou `.unauthorise(NUMERO)`\nEx: `.unauthorise 212612345678`',
+                    });
+                    continue;
+                }
+                const result = removeAuthorizedPhone(phone);
+                await sock.sendMessage(sender, { text: result.message });
+            } else if (cleanText.startsWith('.ping')) {
                 await sock.sendMessage(sender, { text: '🤖 Bot est actif et connecté! Pong! ✅' });
                 console.log(`[BOT] Réponse .ping envoyée à ${sender}`);
             } else if (cleanText.startsWith('.creneau')) {
@@ -366,6 +580,19 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = '') {
         });
 
         sock.ev.on('creds.update', saveCreds);
+
+        sock.ev.on('lid-mapping.update', (update) => {
+            if (!update || typeof update !== 'object') return;
+            if (Array.isArray(update)) {
+                for (const entry of update) {
+                    if (entry?.lid && entry?.pn) storeLidMapping(entry.lid, entry.pn);
+                }
+            } else {
+                for (const [lid, pn] of Object.entries(update)) {
+                    storeLidMapping(lid, pn);
+                }
+            }
+        });
 
         // Écoute des messages entrants (commandes .ping, .creneau, etc.)
         sock.ev.on('messages.upsert', async (m) => {
