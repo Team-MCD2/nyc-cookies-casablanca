@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { OrderStatusBadge, PaymentStatusBadge } from "@/components/status-badge";
+import { ORDER_STATUS_OPTIONS, PAYMENT_STATUS_OPTIONS } from "@/components/status-badge";
 import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Select } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
@@ -10,9 +10,6 @@ import { updateOrderStatus, updateOrderPayment } from "@/lib/actions";
 import { money, formatDate } from "@/lib/utils";
 import type { Order, OrderStatus, PaymentStatus } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-
-const ORDER_STATUSES: OrderStatus[] = ["pending", "preparing", "ready", "delivered", "cancelled"];
-const PAYMENT_STATUSES: PaymentStatus[] = ["pending", "paid"];
 
 export function AdminOrdersClient({ orders }: { orders: Order[] }) {
   const router = useRouter();
@@ -77,38 +74,34 @@ export function AdminOrdersClient({ orders }: { orders: Order[] }) {
               </Td>
               <Td className="text-right tabular-nums">{money(o.total)}</Td>
               <Td>
-                <div className="flex flex-col gap-1.5">
-                  <OrderStatusBadge status={o.status} />
-                  <Select
-                    value={o.status}
-                    disabled={pending}
-                    onChange={(e) => onStatusChange(o.id, e.target.value as OrderStatus)}
-                    className="h-8 text-xs"
-                  >
-                    {ORDER_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                <Select
+                  value={o.status}
+                  disabled={pending}
+                  onChange={(e) => onStatusChange(o.id, e.target.value as OrderStatus)}
+                  className="h-9 min-w-[10.5rem] text-sm"
+                  aria-label={`Statut ${o.id}`}
+                >
+                  {ORDER_STATUS_OPTIONS.map(([value, { label }]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
               </Td>
               <Td>
-                <div className="flex flex-col gap-1.5">
-                  <PaymentStatusBadge status={o.payment} />
-                  <Select
-                    value={o.payment}
-                    disabled={pending}
-                    onChange={(e) => onPaymentChange(o.id, e.target.value as PaymentStatus)}
-                    className="h-8 text-xs"
-                  >
-                    {PAYMENT_STATUSES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                <Select
+                  value={o.payment}
+                  disabled={pending}
+                  onChange={(e) => onPaymentChange(o.id, e.target.value as PaymentStatus)}
+                  className="h-9 min-w-[9rem] text-sm"
+                  aria-label={`Paiement ${o.id}`}
+                >
+                  {PAYMENT_STATUS_OPTIONS.map(([value, { label }]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
               </Td>
             </Tr>
           ))}

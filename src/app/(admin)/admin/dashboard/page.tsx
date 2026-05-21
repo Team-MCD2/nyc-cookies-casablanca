@@ -79,7 +79,7 @@ export default async function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Factures à venir</CardTitle>
+            <CardTitle>Factures à payer</CardTitle>
             <Badge variant="neutral">{pros.length} pros</Badge>
           </CardHeader>
           <TableWrap>

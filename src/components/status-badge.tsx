@@ -15,10 +15,13 @@ const PAYMENT_MAP: Record<PaymentStatus, { variant: "warning" | "success"; label
 };
 
 const INVOICE_MAP: Record<InvoiceStatus, { variant: "warning" | "success" | "danger"; label: string }> = {
-  upcoming: { variant: "warning", label: "À venir" },
+  upcoming: { variant: "warning", label: "À payer" },
   paid: { variant: "success", label: "Payée" },
   overdue: { variant: "danger", label: "En retard" },
 };
+
+export const ORDER_STATUS_OPTIONS = Object.entries(ORDER_MAP) as [OrderStatus, (typeof ORDER_MAP)[OrderStatus]][];
+export const PAYMENT_STATUS_OPTIONS = Object.entries(PAYMENT_MAP) as [PaymentStatus, (typeof PAYMENT_MAP)[PaymentStatus]][];
 
 const PRO_MAP: Record<ProStatus, { variant: "success" | "neutral"; label: string }> = {
   active: { variant: "success", label: "Actif" },

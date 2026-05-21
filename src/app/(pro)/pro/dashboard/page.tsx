@@ -54,7 +54,7 @@ export default async function ProDashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="À venir" value={money(upcomingTotal)} delta={`${upcoming.length} factures`} />
+        <Kpi label="À payer" value={money(upcomingTotal)} delta={`${upcoming.length} factures`} />
         <Kpi label="En retard" value={money(overdueTotal)} delta={`${overdue.length} factures`} deltaTone={overdue.length > 0 ? "down" : undefined} />
         <Kpi label="Payées" value={String(paid.length)} />
         <Kpi label="Délai paiement" value={`${pro.paymentTerms}j`} />

@@ -266,8 +266,17 @@ export async function sendInvoiceToClient(reference: string) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
   const company = inv.pros?.company ?? "Client";
-  const phone = inv.pros?.phone;
-  if (phone) {
+  const phone = inv.pros?.phone?.trim() || null;
+
+  let whatsappSent = false;
+  let whatsappNote = "";
+
+  if (!phone) {
+    whatsappNote =
+      "Aucun numéro WhatsApp sur la fiche pro — ajoutez-le dans Admin → Clients Pros.";
+  } else if (!process.env.NEXT_PUBLIC_WHATSAPP_BOT_URL || !process.env.SITE_API_SECRET) {
+    whatsappNote = "Bot WhatsApp non configuré sur le site (variables d'environnement).";
+  } else {
     const msg = [
       "🍪 *NYC Cookies Casablanca*",
       "",
@@ -278,17 +287,21 @@ export async function sendInvoiceToClient(reference: string) {
       "",
       `👉 ${siteUrl}/pro/invoices`,
     ].join("\n");
-    await sendWhatsAppToPhone(phone, msg);
+    whatsappSent = await sendWhatsAppToPhone(phone, msg);
+    if (!whatsappSent) {
+      whatsappNote =
+        "WhatsApp non envoyé : vérifiez que le bot est connecté (/admin/whatsapp) et que le numéro est valide (ex. 212612345678).";
+    }
   }
 
   revalidatePath("/admin/invoices");
   revalidatePath("/pro/invoices");
-  return {
-    success: true,
-    message: phone
-      ? `Facture envoyée. Notification WhatsApp envoyée à ${company}.`
-      : `Facture publiée dans l'espace pro (pas de numéro WhatsApp enregistré).`,
-  };
+
+  const message = whatsappSent
+    ? `Facture publiée. WhatsApp envoyé à ${company} (${phone.replace(/\D/g, "")}).`
+    : `Facture publiée dans l'espace pro. ${whatsappNote}`;
+
+  return { success: true, message, whatsappSent };
 }
 
 // ---------- Invitations (admin) ----------

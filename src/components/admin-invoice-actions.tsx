@@ -26,7 +26,11 @@ export function AdminInvoiceActions({ invoice }: { invoice: Invoice }) {
     start(async () => {
       try {
         const res = await sendInvoiceToClient(invoice.id);
-        toast({ title: "Facture envoyée", message: res.message, type: "success" });
+        toast({
+          title: res.whatsappSent ? "Facture envoyée" : "Facture publiée",
+          message: res.message,
+          type: res.whatsappSent ? "success" : "warning",
+        });
         router.refresh();
       } catch (err) {
         toast({
