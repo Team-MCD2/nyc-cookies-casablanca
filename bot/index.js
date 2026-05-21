@@ -252,23 +252,69 @@ function findProByPhone(pros, targetPhone) {
 
 const MENU_LOGO_PATH = path.join(__dirname, 'assets', 'nyclogo.png');
 
+const ORDER_STATUS_LABELS = {
+    pending: 'En attente',
+    preparing: 'En préparation',
+    ready: 'Prête',
+    delivered: 'Livrée',
+    cancelled: 'Annulée',
+};
+
+const ORDER_STATUS_ALIASES = {
+    attente: 'pending',
+    en_attente: 'pending',
+    pending: 'pending',
+    prep: 'preparing',
+    preparation: 'preparing',
+    preparing: 'preparing',
+    pret: 'ready',
+    prete: 'ready',
+    ready: 'ready',
+    livre: 'delivered',
+    livree: 'delivered',
+    delivered: 'delivered',
+    annule: 'cancelled',
+    annulee: 'cancelled',
+    cancelled: 'cancelled',
+};
+
 function getMenuText() {
     return [
         '🍪 *NYC Cookies — Bot WhatsApp*',
         '',
-        '*Commandes disponibles :*',
-        '',
-        '• `.menu` — Afficher ce menu',
+        '*Général*',
+        '• `.menu` — Ce menu',
         '• `.ping` — Tester la connexion',
-        '• `.pro` — Liste des clients pro (numéros)',
-        '• `.prosend NUMERO : Message` — Message personnalisé à un pro',
-        `• \`.creneau HH:mm\` — Rappels auto (heure Maroc, ${CRON_TIMEZONE})`,
-        '• `.authorise NUMERO` — Autoriser un numéro admin',
-        '• `.unauthorise NUMERO` — Retirer l\'autorisation d\'un numéro',
+        '• `.update` — Résumé admin (commandes, pros, factures)',
+        '',
+        '*Boutique — commandes*',
+        '• `.commandes` — En attente (défaut)',
+        '• `.commandes active` — En cours (attente + prépa + prête)',
+        '• `.commande REF` — Détail d\'une commande',
+        '• `.statut REF prep` — Changer le statut (attente/prep/pret/livre/annule)',
+        '• `.avancer REF` — Passer au statut suivant',
+        '• `.ventes` — CA et stats du jour (Maroc)',
+        '• `.demandes` — Demandes compte pro en attente',
+        '',
+        '*Boutique — catalogue*',
+        '• `.stock` — Produits en stock bas (seuil 15)',
+        '• `.stock 5` — Stock bas avec seuil personnalisé',
+        '• `.produits` — Liste des produits actifs',
+        '',
+        '*Clients pro*',
+        '• `.pro` — Liste des pros (numéros)',
+        '• `.prosend NUMERO : Message` — Message personnalisé',
+        `• \`.creneau HH:mm\` — Rappels auto (${CRON_TIMEZONE})`,
+        '',
+        '*Administration*',
+        '• `.authorise NUMERO` — Autoriser un admin',
+        '• `.unauthorise NUMERO` — Retirer l\'autorisation',
+        '',
+        '*Notifications auto :* nouvelles commandes · demandes pro',
         '',
         '*Exemples :*',
-        '`.authorise 212612345678`',
-        '`.authorise(33762641473)`',
+        '`.commande ord_2026_0042`',
+        '`.statut ord_2026_0042 pret`',
         '`.prosend 212612345678 : Bonjour !`',
     ].join('\n');
 }
@@ -285,6 +331,212 @@ async function getMenuLogoBuffer() {
         console.warn('[BOT] Logo menu introuvable:', e.message);
     }
     return null;
+}
+
+async function notifyAllAdmins(message) {
+    if (!isConnected || !sock) {
+        return { sent: 0, failed: 0, total: 0, error: 'Bot non connecté' };
+    }
+
+    const phones = getAllAuthorizedPhones();
+    let sent = 0;
+    let failed = 0;
+
+    for (const phone of phones) {
+        try {
+            const jid = `${phone}@s.whatsapp.net`;
+            await sock.sendMessage(jid, { text: message });
+            sent++;
+            console.log(`[BOT] Notification admin envoyée à ${phone}`);
+            await new Promise(r => setTimeout(r, 1500));
+        } catch (err) {
+            failed++;
+            console.error(`[BOT] Échec notification vers ${phone}:`, err.message);
+        }
+    }
+
+    return { sent, failed, total: phones.length };
+}
+
+function formatAdminSummary(data) {
+    const lines = [
+        '📊 *NYC Cookies — Mise à jour admin*',
+        '',
+        `🛒 Commandes en attente : *${data.pendingOrdersCount ?? 0}*`,
+        `💼 Demandes Pro en attente : *${data.pendingProRequestsCount ?? 0}*`,
+        `📦 Commandes aujourd'hui : *${data.ordersTodayCount ?? 0}*`,
+        `🧾 Factures impayées : *${data.pendingInvoicesCount ?? 0}*`,
+        `⏰ Rappels pros : *${botConfig.cronTime}* (${CRON_TIMEZONE})`,
+        '',
+    ];
+
+    if (data.pendingOrders?.length) {
+        lines.push('*Dernières commandes en attente :*');
+        data.pendingOrders.slice(0, 5).forEach((o) => {
+            lines.push(`• ${o.reference} — ${o.total_mad} MAD (${o.customer_type})`);
+        });
+        lines.push('');
+    }
+
+    if (data.pendingProRequests?.length) {
+        lines.push('*Demandes Pro récentes :*');
+        data.pendingProRequests.slice(0, 5).forEach((r) => {
+            lines.push(`• ${r.company} — ${r.contact_name} (${r.phone})`);
+        });
+        lines.push('');
+    }
+
+    lines.push(`🔗 Admin : ${data.siteUrl}/admin`);
+    return lines.join('\n');
+}
+
+async function fetchAdminSummary() {
+    const fetch = (await import('node-fetch')).default;
+    const res = await fetch(`${SITE_URL}/api/bot/admin-summary`, {
+        headers: { Authorization: `Bearer ${SITE_API_SECRET}` },
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+async function fetchShop(action, params = {}) {
+    const fetch = (await import('node-fetch')).default;
+    const qs = new URLSearchParams({ action, ...params });
+    const res = await fetch(`${SITE_URL}/api/bot/shop?${qs}`, {
+        headers: { Authorization: `Bearer ${SITE_API_SECRET}` },
+    });
+    if (!res.ok) {
+        const err = await res.text();
+        if (res.status === 404) throw new Error('not_found');
+        throw new Error(err);
+    }
+    return res.json();
+}
+
+async function patchShop(body) {
+    const fetch = (await import('node-fetch')).default;
+    const res = await fetch(`${SITE_URL}/api/bot/shop`, {
+        method: 'PATCH',
+        headers: {
+            Authorization: `Bearer ${SITE_API_SECRET}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        if (data.error === 'not_found') throw new Error('not_found');
+        if (data.error === 'cannot_advance') throw new Error('cannot_advance');
+        throw new Error(data.error || (await res.text()));
+    }
+    return data;
+}
+
+function parseOrderStatusInput(raw) {
+    if (!raw) return null;
+    const key = raw.toLowerCase().replace(/é/g, 'e').replace(/è/g, 'e');
+    return ORDER_STATUS_ALIASES[key] || null;
+}
+
+function statusLabel(status) {
+    return ORDER_STATUS_LABELS[status] || status;
+}
+
+function formatOrdersList(data) {
+    const filter = data.statusFilter === 'active' ? 'en cours' : data.statusFilter;
+    const lines = [`🛒 *Commandes (${filter})*`, ''];
+    if (!data.orders?.length) {
+        lines.push('Aucune commande pour ce filtre.');
+        return lines.join('\n');
+    }
+    data.orders.forEach((o) => {
+        const date = new Date(o.created_at).toLocaleString('fr-MA', {
+            timeZone: 'Africa/Casablanca',
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+        lines.push(
+            `• *${o.reference}* — ${o.total_mad} MAD`,
+            `  ${statusLabel(o.status)} · ${o.customer_type} · ${date}`,
+        );
+    });
+    lines.push('', '`.commande REF` pour le détail');
+    return lines.join('\n');
+}
+
+function formatOrderDetail(data) {
+    const o = data.order;
+    const lines = [
+        `📦 *Commande ${o.reference}*`,
+        '',
+        `Statut : *${statusLabel(o.status)}*`,
+        `Paiement : ${o.payment}`,
+        `Client : ${o.customer_type}${o.customerLabel ? ` — ${o.customerLabel}` : ''}`,
+        `Total : *${o.total_mad} MAD*`,
+        `Date : ${new Date(o.created_at).toLocaleString('fr-MA', { timeZone: 'Africa/Casablanca' })}`,
+        '',
+        '*Articles :*',
+    ];
+    o.items.forEach((i) => lines.push(`• ${i.qty}× ${i.name}`));
+    lines.push('', '`.statut REF prep` · `.avancer REF`');
+    return lines.join('\n');
+}
+
+function formatStockList(data) {
+    const lines = [`📉 *Stock bas (≤ ${data.threshold})*`, ''];
+    if (!data.products?.length) {
+        lines.push('✅ Tous les produits sont au-dessus du seuil.');
+        return lines.join('\n');
+    }
+    data.products.forEach((p) => {
+        lines.push(`• ${p.name} — *${p.stock}* restant(s) (${p.price_mad} MAD)`);
+    });
+    return lines.join('\n');
+}
+
+function formatProductsList(data) {
+    const lines = ['🍪 *Produits actifs*', ''];
+    if (!data.products?.length) {
+        lines.push('Aucun produit actif.');
+        return lines.join('\n');
+    }
+    data.products.forEach((p) => {
+        const flag = p.stock <= 5 ? ' ⚠️' : '';
+        lines.push(`• ${p.name} — ${p.price_mad} MAD · stock *${p.stock}*${flag}`);
+    });
+    return lines.join('\n');
+}
+
+function formatSalesStats(data) {
+    const byStatus = data.byStatus || {};
+    const statusLines = Object.entries(byStatus)
+        .map(([s, n]) => `  ${statusLabel(s)} : ${n}`)
+        .join('\n');
+    return [
+        `💰 *Ventes du ${data.dateMorocco}*`,
+        '',
+        `Commandes : *${data.ordersCount}*`,
+        `Chiffre d'affaires : *${data.revenueMad} MAD*`,
+        `En attente (total) : *${data.pendingCount}*`,
+        '',
+        '*Par statut aujourd\'hui :*',
+        statusLines || '  —',
+    ].join('\n');
+}
+
+function formatProRequestsList(data) {
+    const lines = ['💼 *Demandes compte Pro en attente*', ''];
+    if (!data.requests?.length) {
+        lines.push('Aucune demande en attente.');
+        return lines.join('\n');
+    }
+    data.requests.forEach((r) => {
+        lines.push(`• *${r.company}*`, `  ${r.contact_name} — ${r.phone}`, `  ${r.email || '—'}`);
+    });
+    lines.push('', `🔗 ${SITE_URL}/admin/pro-requests`);
+    return lines.join('\n');
 }
 
 async function sendMenu(jid) {
@@ -420,6 +672,133 @@ async function handleIncomingMessages(m) {
                 }
                 const result = removeAuthorizedPhone(phone);
                 await sock.sendMessage(sender, { text: result.message });
+            } else if (cmd === '.update') {
+                try {
+                    const summary = await fetchAdminSummary();
+                    await sendLongMessage(sender, formatAdminSummary(summary));
+                    console.log('[BOT] Résumé .update envoyé');
+                } catch (err) {
+                    console.error('[BOT] Erreur .update:', err);
+                    await sock.sendMessage(sender, {
+                        text: '❌ Impossible de récupérer les données du site. Vérifiez NEXT_PUBLIC_SITE_URL et SITE_API_SECRET.',
+                    });
+                }
+            } else if (cmd === '.commandes' || cmd === '.orders') {
+                try {
+                    const parts = text.trim().split(/\s+/);
+                    let status = 'pending';
+                    if (parts[1]) {
+                        const arg = parts[1].toLowerCase();
+                        if (arg === 'active' || arg === 'actives' || arg === 'cours') status = 'active';
+                        else if (arg === 'tout' || arg === 'all' || arg === 'toutes') status = 'all';
+                        else {
+                            const mapped = parseOrderStatusInput(arg);
+                            if (mapped) status = mapped;
+                        }
+                    }
+                    const data = await fetchShop('orders', { status, limit: '15' });
+                    await sendLongMessage(sender, formatOrdersList(data));
+                } catch (err) {
+                    console.error('[BOT] Erreur .commandes:', err);
+                    await sock.sendMessage(sender, { text: '❌ Impossible de récupérer les commandes.' });
+                }
+            } else if (cmd === '.commande' || cmd === '.order') {
+                const refMatch = text.trim().match(/^\.(?:commande|order)\s+(\S+)/i);
+                if (!refMatch) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Format: `.commande REF`\nEx: `.commande ord_2026_0042`',
+                    });
+                    continue;
+                }
+                try {
+                    const data = await fetchShop('order', { reference: refMatch[1] });
+                    await sendLongMessage(sender, formatOrderDetail(data));
+                } catch (err) {
+                    const msg = err.message === 'not_found'
+                        ? '❌ Commande introuvable.'
+                        : '❌ Impossible de récupérer la commande.';
+                    await sock.sendMessage(sender, { text: msg });
+                }
+            } else if (cmd === '.statut' || cmd === '.status') {
+                const statutMatch = text.trim().match(/^\.(?:statut|status)\s+(\S+)\s+(\S+)/i);
+                if (!statutMatch) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Format: `.statut REF prep`\nStatuts: attente, prep, pret, livre, annule',
+                    });
+                    continue;
+                }
+                const [, reference, statusRaw] = statutMatch;
+                const status = parseOrderStatusInput(statusRaw);
+                if (!status) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Statut invalide. Utilisez: attente, prep, pret, livre, annule',
+                    });
+                    continue;
+                }
+                try {
+                    const result = await patchShop({ action: 'set-status', reference, status });
+                    const note = result.unchanged ? ' (déjà à ce statut)' : '';
+                    await sock.sendMessage(sender, {
+                        text: `✅ *${reference}*\n${statusLabel(result.previousStatus)} → *${statusLabel(result.status)}*${note}`,
+                    });
+                } catch (err) {
+                    const msg = err.message === 'not_found'
+                        ? '❌ Commande introuvable.'
+                        : '❌ Impossible de mettre à jour le statut.';
+                    await sock.sendMessage(sender, { text: msg });
+                }
+            } else if (cmd === '.avancer' || cmd === '.advance') {
+                const advMatch = text.trim().match(/^\.(?:avancer|advance)\s+(\S+)/i);
+                if (!advMatch) {
+                    await sock.sendMessage(sender, { text: '❌ Format: `.avancer REF`' });
+                    continue;
+                }
+                try {
+                    const result = await patchShop({ action: 'advance', reference: advMatch[1] });
+                    const note = result.unchanged ? '\nℹ️ Déjà au statut final du flux.' : '';
+                    await sock.sendMessage(sender, {
+                        text: `✅ *${result.reference}*\n${statusLabel(result.previousStatus)} → *${statusLabel(result.status)}*${note}`,
+                    });
+                } catch (err) {
+                    let msg = '❌ Impossible d\'avancer la commande.';
+                    if (err.message === 'not_found') msg = '❌ Commande introuvable.';
+                    else if (err.message === 'cannot_advance') msg = '❌ Cette commande ne peut pas avancer (annulée ou hors flux).';
+                    await sock.sendMessage(sender, { text: msg });
+                }
+            } else if (cmd === '.stock' || cmd === '.stocks') {
+                try {
+                    const parts = text.trim().split(/\s+/);
+                    const threshold = parts[1] && /^\d+$/.test(parts[1]) ? parts[1] : '15';
+                    const data = await fetchShop('stock', { threshold });
+                    await sendLongMessage(sender, formatStockList(data));
+                } catch (err) {
+                    console.error('[BOT] Erreur .stock:', err);
+                    await sock.sendMessage(sender, { text: '❌ Impossible de récupérer les stocks.' });
+                }
+            } else if (cmd === '.produits' || cmd === '.products') {
+                try {
+                    const data = await fetchShop('products', { limit: '30' });
+                    await sendLongMessage(sender, formatProductsList(data));
+                } catch (err) {
+                    console.error('[BOT] Erreur .produits:', err);
+                    await sock.sendMessage(sender, { text: '❌ Impossible de récupérer les produits.' });
+                }
+            } else if (cmd === '.ventes' || cmd === '.ca' || cmd === '.stats') {
+                try {
+                    const data = await fetchShop('stats');
+                    await sock.sendMessage(sender, { text: formatSalesStats(data) });
+                } catch (err) {
+                    console.error('[BOT] Erreur .ventes:', err);
+                    await sock.sendMessage(sender, { text: '❌ Impossible de récupérer les ventes du jour.' });
+                }
+            } else if (cmd === '.demandes' || cmd === '.demandespro') {
+                try {
+                    const data = await fetchShop('pro-requests');
+                    await sendLongMessage(sender, formatProRequestsList(data));
+                } catch (err) {
+                    console.error('[BOT] Erreur .demandes:', err);
+                    await sock.sendMessage(sender, { text: '❌ Impossible de récupérer les demandes pro.' });
+                }
             } else if (cleanText.startsWith('.ping')) {
                 await sock.sendMessage(sender, { text: '🤖 Bot est actif et connecté! Pong! ✅' });
                 console.log(`[BOT] Réponse .ping envoyée à ${sender}`);
@@ -800,15 +1179,30 @@ app.post('/api/clear-authorized-phone', (req, res) => {
     });
 });
 
-app.post('/api/send-message', async (req, res) => {
-    const authHeader = req.headers['authorization'];
-    if (authHeader !== `Bearer ${SITE_API_SECRET}`) {
-        return res.status(401).json({ error: "Unauthorized" });
+app.post('/api/notify-admins', async (req, res) => {
+    if (!verifyApiSecret(req, res)) return;
+
+    const { message } = req.body;
+    if (!message) {
+        return res.status(400).json({ error: "message parameter is required" });
     }
 
-    const { phone, message } = req.body;
-    if (!phone || !message) {
-        return res.status(400).json({ error: "Phone and message parameters are required" });
+    try {
+        const result = await notifyAllAdmins(message);
+        res.json({ success: true, ...result });
+    } catch (err) {
+        console.error("Error notify-admins:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/send-message', async (req, res) => {
+    if (!verifyApiSecret(req, res)) return;
+
+    const { phone, message, broadcast } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ error: "message parameter is required" });
     }
 
     if (!isConnected || !sock) {
@@ -816,10 +1210,15 @@ app.post('/api/send-message', async (req, res) => {
     }
 
     try {
+        if (broadcast === true || !phone) {
+            const result = await notifyAllAdmins(message);
+            return res.json({ success: true, ...result });
+        }
+
         const cleanNumber = phone.replace(/\D/g, '');
         const jid = `${cleanNumber}@s.whatsapp.net`;
         await sock.sendMessage(jid, { text: message });
-        res.json({ success: true, message: "Message sent successfully" });
+        res.json({ success: true, message: "Message sent successfully", phone: cleanNumber });
     } catch (err) {
         console.error("Error sending message via API:", err);
         res.status(500).json({ error: err.message });

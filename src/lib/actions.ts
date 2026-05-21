@@ -6,6 +6,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole, requireSession } from "@/lib/auth";
 import type { Role } from "@/lib/types";
+import { notifyAdmins } from "@/lib/whatsapp-bot";
 
 // ---------- Schemas ----------
 const productSchema = z.object({
@@ -122,31 +123,10 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
   revalidatePath("/admin/orders");
   revalidatePath(isPro ? "/pro/orders" : "/shop");
 
-  // Envoyer la notification WhatsApp à l'administrateur
-  try {
-    const adminPhone = process.env.ADMIN_PHONE || process.env.NEXT_PUBLIC_BRAND_PHONE;
-    const botUrl = process.env.NEXT_PUBLIC_WHATSAPP_BOT_URL;
-    const apiSecret = process.env.SITE_API_SECRET;
-
-    if (adminPhone && botUrl && apiSecret) {
-      const clientType = isPro ? "Professionnel 💼" : "Particulier 🍪";
-      const message = `🔔 *NYC Cookies Casablanca*\n\nUn nouveau client (${clientType}) a passé une commande !\n\n*Référence :* ${reference}\n*Montant :* ${total} MAD\n\nRDV sur votre espace d'administration pour la traiter.`;
-      
-      fetch(`${botUrl}/api/send-message`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiSecret}`
-        },
-        body: JSON.stringify({
-          phone: adminPhone,
-          message: message
-        })
-      }).catch(err => console.error("Error sending order notification to WhatsApp Bot:", err));
-    }
-  } catch (err) {
-    console.error("Failed to send WhatsApp order notification:", err);
-  }
+  const clientType = isPro ? "Professionnel 💼" : "Particulier 🍪";
+  const adminUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+  const orderMessage = `🔔 *NYC Cookies Casablanca*\n\n🛒 *Nouvelle commande* (${clientType})\n\n*Référence :* ${reference}\n*Montant :* ${total} MAD\n\n👉 ${adminUrl}/admin/orders`;
+  await notifyAdmins(orderMessage);
 
   return { reference, total };
 }
@@ -232,30 +212,9 @@ export async function submitProRequest(input: z.input<typeof proRequestSchema>) 
   });
   if (error) throw error;
 
-  // Notifier l'administrateur par WhatsApp via le Bot
-  try {
-    const adminPhone = process.env.ADMIN_PHONE || process.env.NEXT_PUBLIC_BRAND_PHONE;
-    const botUrl = process.env.NEXT_PUBLIC_WHATSAPP_BOT_URL;
-    const apiSecret = process.env.SITE_API_SECRET;
-
-    if (adminPhone && botUrl && apiSecret) {
-      const message = `💼 *NYC Cookies Casablanca*\n\nNouvelle demande de compte Pro en attente ! \n\n*Société :* ${data.company}\n*Contact :* ${data.contactName}\n*Email :* ${data.email}\n*Téléphone :* ${data.phone}\n${data.message ? `*Message :* ${data.message}` : ""}\n\nConnectez-vous sur votre tableau de bord pour valider sa demande et générer son lien unique d'onboarding.`;
-      
-      fetch(`${botUrl}/api/send-message`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiSecret}`
-        },
-        body: JSON.stringify({
-          phone: adminPhone,
-          message: message
-        })
-      }).catch(err => console.error("Error sending pro request notification to WhatsApp Bot:", err));
-    }
-  } catch (err) {
-    console.error("Failed to send WhatsApp pro request notification:", err);
-  }
+  const adminUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+  const proRequestMessage = `💼 *NYC Cookies Casablanca*\n\n📋 *Nouvelle demande compte Pro*\n\n*Société :* ${data.company}\n*Contact :* ${data.contactName}\n*Email :* ${data.email}\n*Téléphone :* ${data.phone}\n${data.message ? `*Message :* ${data.message}` : ""}\n\n👉 ${adminUrl}/admin/pros`;
+  await notifyAdmins(proRequestMessage);
 
   revalidatePath("/admin/pros");
   return { success: true };

@@ -23,11 +23,25 @@ type BotStatus = {
 const BOT_COMMANDS = [
   { cmd: ".menu", desc: "Menu des commandes (avec logo NYC)" },
   { cmd: ".ping", desc: "Tester la connexion du bot" },
-  { cmd: ".authorise NUMERO", desc: "Autoriser un numéro admin (aussi .authorise(NUMERO))" },
-  { cmd: ".unauthorise NUMERO", desc: "Retirer l'autorisation d'un numéro" },
+  { cmd: ".update", desc: "Résumé admin (commandes, demandes pro, factures)" },
+  { cmd: ".commandes", desc: "Commandes en attente (.commandes active / prep / tout)" },
+  { cmd: ".commande REF", desc: "Détail d'une commande (articles, client, statut)" },
+  { cmd: ".statut REF prep", desc: "Changer le statut (attente, prep, pret, livre, annule)" },
+  { cmd: ".avancer REF", desc: "Passer au statut suivant (attente → prépa → prête → livrée)" },
+  { cmd: ".ventes", desc: "CA et stats du jour (fuseau Maroc)" },
+  { cmd: ".demandes", desc: "Demandes compte pro en attente" },
+  { cmd: ".stock", desc: "Produits en stock bas (option : .stock 5)" },
+  { cmd: ".produits", desc: "Catalogue actif avec niveaux de stock" },
   { cmd: ".pro", desc: "Liste des clients pro avec numéros" },
-  { cmd: ".prosend NUMERO : Message", desc: "Envoyer un message personnalisé à un pro" },
+  { cmd: ".prosend NUMERO : Message", desc: "Message personnalisé à un pro" },
   { cmd: ".creneau HH:mm", desc: "Heure des rappels automatiques (fuseau Maroc)" },
+  { cmd: ".authorise NUMERO", desc: "Autoriser un numéro admin" },
+  { cmd: ".unauthorise NUMERO", desc: "Retirer l'autorisation d'un numéro" },
+] as const;
+
+const AUTO_NOTIFICATIONS = [
+  "Nouvelle commande (B2C ou Pro)",
+  "Nouvelle demande de compte Pro",
 ] as const;
 
 export default function WhatsAppAdminPage() {
@@ -291,6 +305,17 @@ export default function WhatsAppAdminPage() {
         <p className="text-sm text-text-3 mb-4">
           Réservées aux numéros autorisés. Tapez <code className="text-accent">.menu</code> sur WhatsApp pour le menu complet.
         </p>
+        <div className="mb-4 rounded-md border border-accent/20 bg-accent/5 p-3 text-sm">
+          <p className="font-medium text-text mb-2">Notifications automatiques</p>
+          <p className="text-text-3 text-xs mb-2">
+            Envoyées à <strong>tous les numéros autorisés</strong> ci-dessous :
+          </p>
+          <ul className="list-disc pl-5 text-text-3 text-xs space-y-0.5">
+            {AUTO_NOTIFICATIONS.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {BOT_COMMANDS.map(({ cmd, desc }) => (
             <div
