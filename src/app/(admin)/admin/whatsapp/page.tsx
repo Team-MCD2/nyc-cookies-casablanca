@@ -23,7 +23,8 @@ type BotStatus = {
 };
 
 const BOT_COMMANDS = [
-  { cmd: ".menu", desc: "Menu des commandes (avec logo NYC)" },
+  { cmd: ".menu", desc: "Liste des commandes (sans explications, + logo)" },
+  { cmd: ".guide", desc: "Aide détaillée : usage et rôle de chaque commande" },
   { cmd: ".ping", desc: "Tester la connexion du bot" },
   { cmd: ".update", desc: "Résumé admin (commandes, demandes pro, factures)" },
   { cmd: ".commandes", desc: "Commandes en attente (.commandes active / prep / tout)" },
@@ -43,8 +44,10 @@ const BOT_COMMANDS = [
 ] as const;
 
 const AUTO_NOTIFICATIONS = [
-  "Nouvelle commande pro",
+  "Nouvelle commande pro (avec nom du pro)",
   "Nouvelle demande de compte Pro",
+  "Invitation pro acceptée → WhatsApp société",
+  "Facture envoyée au client → WhatsApp pro",
 ] as const;
 
 export default function WhatsAppAdminPage() {

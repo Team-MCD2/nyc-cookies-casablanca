@@ -197,11 +197,13 @@ Tapez `.menu` sur WhatsApp pour la liste complète.
 
 | Commande | Effet |
 |----------|--------|
+| `.menu` | Liste des commandes (noms seuls, sans explications) |
+| `.guide` | Aide détaillée (à quoi sert chaque commande + exemples) |
 | `.ping` | Test connexion |
-| `.update` | Résumé admin (commandes, pros, factures) |
-| `.commande ord_2026_0001` | Détail d’une commande |
+| `.update` | Résumé admin (commandes, factures **à payer**, demandes pro) |
+| `.commande ord_2026_0001` | Détail commande (statut, paiement, client pro) |
 | `.statut ord_2026_0001 prep` | Changer statut commande |
-| `.paiement ord_2026_0001 paye` | Changer statut paiement |
+| `.paiement ord_2026_0001 paye` | Paiement commande **+ facture liée** (Payée / À payer) |
 | `.authorise 212…` | Autoriser un admin |
 | `.unauthorise 212…` | Retirer un admin |
 

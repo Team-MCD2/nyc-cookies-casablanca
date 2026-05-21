@@ -34,10 +34,16 @@ export async function GET(req: Request) {
       .gte("created_at", new Date().toISOString().slice(0, 10)),
   ]);
 
-  const { count: pendingInvoices } = await sb
+  const { data: invoiceRows } = await sb
     .from("invoices")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["upcoming", "overdue"]);
+    .select("reference, status, amount_mad, orders(payment)");
+
+  const unpaidInvoices = (invoiceRows ?? []).filter((inv) => {
+    if (inv.status === "paid") return false;
+    const orderPayment = (inv.orders as { payment?: string } | null)?.payment;
+    if (orderPayment === "paid") return false;
+    return true;
+  });
 
   return NextResponse.json({
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
@@ -46,6 +52,11 @@ export async function GET(req: Request) {
     pendingProRequests: pendingProRequests ?? [],
     pendingProRequestsCount: pendingProRequests?.length ?? 0,
     ordersTodayCount: ordersToday ?? 0,
-    pendingInvoicesCount: pendingInvoices ?? 0,
+    unpaidInvoicesCount: unpaidInvoices.length,
+    unpaidInvoices: unpaidInvoices.slice(0, 5).map((inv) => ({
+      reference: inv.reference,
+      status: inv.status,
+      amount_mad: inv.amount_mad,
+    })),
   });
 }
