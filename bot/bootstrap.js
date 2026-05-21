@@ -109,7 +109,7 @@ NEXT_PUBLIC_SITE_URL=${CONFIG.NEXT_PUBLIC_SITE_URL}
   apps: [
     {
       name: 'nyc-cookies-whatsapp-bot',
-      script: './index.js',
+      script: './index-app-modified.js',
       instances: 1,
       autorestart: true,
       watch: false,
@@ -132,7 +132,7 @@ NEXT_PUBLIC_SITE_URL=${CONFIG.NEXT_PUBLIC_SITE_URL}
         
         // Requiring the bot index.js directly to run within this process
         try {
-            const botIndexPath = path.join(APP_DIR, 'index.js');
+            const botIndexPath = path.join(APP_DIR, 'index-app-modified.js');
             // Change working directory so Baileys auth folder and config files are created inside the app directory
             process.chdir(APP_DIR);
             require(botIndexPath);
