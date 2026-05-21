@@ -83,6 +83,9 @@ function rowToInvoice(r: any): Invoice {
     dueDate: r.due_date,
     amount: r.amount_mad,
     status: r.status,
+    sentToClient: r.sent_to_client ?? false,
+    tvaRate: r.tva_rate != null ? Number(r.tva_rate) : null,
+    amountHt: r.amount_ht_mad ?? null,
   };
 }
 
@@ -197,6 +200,7 @@ export async function listInvoicesForPro(proId: string) {
     .from("invoices")
     .select("*")
     .eq("pro_id", proId)
+    .eq("sent_to_client", true)
     .order("issue_date", { ascending: false });
   return (data ?? []).map(rowToInvoice);
 }

@@ -6,7 +6,8 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole, requireSession } from "@/lib/auth";
 import type { Role } from "@/lib/types";
-import { notifyAdmins } from "@/lib/whatsapp-bot";
+import { notifyAdmins, sendWhatsAppToPhone } from "@/lib/whatsapp-bot";
+import type { OrderStatus, PaymentStatus } from "@/lib/types";
 
 // ---------- Schemas ----------
 const productSchema = z.object({
@@ -17,7 +18,32 @@ const productSchema = z.object({
   price_mad: z.coerce.number().int().nonnegative(),
   stock: z.coerce.number().int().nonnegative().default(0),
   active: z.coerce.boolean().default(true),
+  image_url: z.string().nullable().optional(),
 });
+
+function slugProductId(name: string): string {
+  const base =
+    "p_" +
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 28);
+  return base || "p_product";
+}
+
+async function nextProductId(sb: ReturnType<typeof createAdminClient>, name: string): Promise<string> {
+  const { data } = await sb.from("products").select("id");
+  const existing = new Set((data ?? []).map((r: { id: string }) => r.id));
+  let id = slugProductId(name);
+  let n = 1;
+  while (existing.has(id)) {
+    id = `${slugProductId(name)}_${n++}`;
+  }
+  return id;
+}
 
 const orderItemSchema = z.object({
   pid: z.string(),
@@ -37,8 +63,10 @@ function nextRef(prefix: string, count: number) {
 // ---------- Products (admin only) ----------
 export async function upsertProduct(input: z.input<typeof productSchema>) {
   await requireRole(["admin"]);
-  const data = productSchema.parse(input);
+  const parsed = productSchema.parse(input);
   const sb = createAdminClient();
+  const id = parsed.id?.trim() || (await nextProductId(sb, parsed.name));
+  const data = { ...parsed, id };
   const { error } = await sb.from("products").upsert(data, { onConflict: "id" });
   if (error) throw error;
   revalidatePath("/admin/products");
@@ -96,7 +124,13 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
   const today = new Date();
 
   if (isPro) {
-    const due = new Date(today.getTime() + 30 * 86400000);
+    const { data: proRow } = await sb
+      .from("pros")
+      .select("payment_terms_days, company, contact_name")
+      .eq("id", linked.id)
+      .maybeSingle();
+    const paymentDays = proRow?.payment_terms_days ?? 30;
+    const due = new Date(today.getTime() + paymentDays * 86400000);
     await sb.from("invoices").insert({
       reference: `INV-${today.getFullYear()}-${seq}`,
       pro_id: linked.id,
@@ -106,6 +140,7 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
       due_date: due.toISOString().slice(0, 10),
       amount_mad: total,
       status: "upcoming",
+      sent_to_client: false,
     });
   } else {
     await sb.from("invoices").insert({
@@ -123,9 +158,31 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
   revalidatePath("/admin/orders");
   revalidatePath(isPro ? "/pro/orders" : "/shop");
 
-  const clientType = "Professionnel 💼";
   const adminUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
-  const orderMessage = `🔔 *NYC Cookies Casablanca*\n\n🛒 *Nouvelle commande* (${clientType})\n\n*Référence :* ${reference}\n*Montant :* ${total} MAD\n\n👉 ${adminUrl}/admin/orders`;
+  let proLine = "";
+  if (isPro) {
+    const { data: proInfo } = await sb
+      .from("pros")
+      .select("company, contact_name")
+      .eq("id", linked.id)
+      .maybeSingle();
+    if (proInfo?.company) {
+      proLine = `\n*Pro :* ${proInfo.company}${proInfo.contact_name ? ` (${proInfo.contact_name})` : ""}`;
+    }
+  }
+  const orderMessage = [
+    "🔔 *NYC Cookies Casablanca*",
+    "",
+    "🛒 *Nouvelle commande Pro*",
+    proLine,
+    "",
+    `*Référence :* ${reference}`,
+    `*Montant :* ${total} MAD`,
+    "",
+    `👉 ${adminUrl}/admin/orders`,
+  ]
+    .filter(Boolean)
+    .join("\n");
   await notifyAdmins(orderMessage);
 
   return { reference, total };
@@ -137,9 +194,25 @@ export async function advanceOrderStatus(reference: string) {
   const { data: cur } = await sb.from("orders").select("status").eq("reference", reference).maybeSingle();
   if (!cur) return;
   const flow = ["pending", "preparing", "ready", "delivered"] as const;
-  const idx = flow.indexOf(cur.status as any);
-  const next = flow[Math.min(idx + 1, flow.length - 1)];
+  const idx = flow.indexOf(cur.status as (typeof flow)[number]);
+  const next = flow[Math.min(Math.max(idx, 0) + 1, flow.length - 1)];
   await sb.from("orders").update({ status: next }).eq("reference", reference);
+  revalidatePath("/admin/orders");
+}
+
+export async function updateOrderStatus(reference: string, status: OrderStatus) {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+  const { error } = await sb.from("orders").update({ status }).eq("reference", reference);
+  if (error) throw error;
+  revalidatePath("/admin/orders");
+}
+
+export async function updateOrderPayment(reference: string, payment: PaymentStatus) {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+  const { error } = await sb.from("orders").update({ payment }).eq("reference", reference);
+  if (error) throw error;
   revalidatePath("/admin/orders");
 }
 
@@ -150,6 +223,72 @@ export async function markInvoicePaid(reference: string) {
   await sb.from("invoices").update({ status: "paid" }).eq("reference", reference);
   revalidatePath("/admin/invoices");
   revalidatePath("/pro/invoices");
+}
+
+export async function applyInvoiceTva(reference: string, tvaRate: number) {
+  await requireRole(["admin"]);
+  if (tvaRate < 0 || tvaRate > 100) throw new Error("Taux de TVA invalide (0–100).");
+  const sb = createAdminClient();
+  const { data: inv } = await sb.from("invoices").select("amount_mad").eq("reference", reference).maybeSingle();
+  if (!inv) throw new Error("Facture introuvable.");
+  const amountHt = Math.round(inv.amount_mad / (1 + tvaRate / 100));
+  const { error } = await sb
+    .from("invoices")
+    .update({ tva_rate: tvaRate, amount_ht_mad: amountHt })
+    .eq("reference", reference);
+  if (error) throw error;
+  revalidatePath("/admin/invoices");
+  revalidatePath(`/admin/invoices/${reference}/print`);
+}
+
+export async function deleteInvoice(reference: string) {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+  const { error } = await sb.from("invoices").delete().eq("reference", reference);
+  if (error) throw error;
+  revalidatePath("/admin/invoices");
+  revalidatePath("/pro/invoices");
+}
+
+/** Envoie la facture au client pro (espace pro + WhatsApp). */
+export async function sendInvoiceToClient(reference: string) {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+  const { data: inv } = await sb
+    .from("invoices")
+    .select("*, pros(company, phone, contact_name)")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (!inv) throw new Error("Facture introuvable.");
+  if (!inv.pro_id) throw new Error("Cette facture n'est pas liée à un client pro.");
+
+  await sb.from("invoices").update({ sent_to_client: true }).eq("reference", reference);
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+  const company = inv.pros?.company ?? "Client";
+  const phone = inv.pros?.phone;
+  if (phone) {
+    const msg = [
+      "🍪 *NYC Cookies Casablanca*",
+      "",
+      `Bonjour ${company},`,
+      "",
+      `Votre facture *${reference}* est disponible dans votre espace pro.`,
+      `Montant : *${inv.amount_mad} MAD*`,
+      "",
+      `👉 ${siteUrl}/pro/invoices`,
+    ].join("\n");
+    await sendWhatsAppToPhone(phone, msg);
+  }
+
+  revalidatePath("/admin/invoices");
+  revalidatePath("/pro/invoices");
+  return {
+    success: true,
+    message: phone
+      ? `Facture envoyée. Notification WhatsApp envoyée à ${company}.`
+      : `Facture publiée dans l'espace pro (pas de numéro WhatsApp enregistré).`,
+  };
 }
 
 // ---------- Invitations (admin) ----------
@@ -177,8 +316,23 @@ export async function createInvitation(input: z.input<typeof inviteSchema>) {
     phone: data.phone,
   });
   if (error) throw error;
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+  const link = `${siteUrl}/pro-invite?token=${token}`;
+  const inviteMessage = [
+    "🍪 *NYC Cookies Casablanca*",
+    "",
+    `Bonjour ${data.contactName},`,
+    "",
+    "Votre demande de compte professionnel a été acceptée.",
+    "",
+    "👉 *Cliquez ici pour créer votre compte pro :*",
+    link,
+  ].join("\n");
+  await sendWhatsAppToPhone(data.phone, inviteMessage);
+
   revalidatePath("/admin/pros");
-  return { token };
+  return { token, link };
 }
 
 export async function deleteInvitation(token: string) {

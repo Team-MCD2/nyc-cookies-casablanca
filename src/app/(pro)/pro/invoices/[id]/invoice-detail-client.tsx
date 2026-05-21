@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowLeft, Mail, Printer } from "lucide-react";
+import { useEffect } from "react";
+import { ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/toaster";
-import { sendInvoiceEmail } from "@/lib/actions";
 import { money, formatDate } from "@/lib/utils";
 import { SITE } from "@/lib/site";
 import Link from "next/link";
@@ -42,7 +40,6 @@ interface InvoiceDetailClientProps {
 
 export function InvoiceDetailClient({ invoice, pro, lineItems }: InvoiceDetailClientProps) {
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("print") === "true") {
@@ -52,28 +49,6 @@ export function InvoiceDetailClient({ invoice, pro, lineItems }: InvoiceDetailCl
       return () => clearTimeout(timer);
     }
   }, [searchParams]);
-
-  const handleSendEmail = async () => {
-    setLoading(true);
-    try {
-      const res = await sendInvoiceEmail(invoice.id);
-      if (res.success) {
-        toast({
-          title: "Facture envoyée",
-          message: res.message,
-          type: "success",
-        });
-      }
-    } catch (err: any) {
-      toast({
-        title: "Erreur",
-        message: err.message || "Impossible d'envoyer la facture.",
-        type: "danger",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // VAT Logic: only if pro has ICE
   const hasTva = !!pro.ice;
@@ -95,14 +70,9 @@ export function InvoiceDetailClient({ invoice, pro, lineItems }: InvoiceDetailCl
         >
           <ArrowLeft className="h-4 w-4" /> Retour aux factures
         </Link>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Imprimer
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleSendEmail} disabled={loading}>
-            <Mail className={`h-4 w-4 ${loading ? "animate-pulse" : ""}`} /> Envoyer par mail
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={() => window.print()}>
+          <Printer className="h-4 w-4" /> Imprimer
+        </Button>
       </div>
 
       {/* Corporate Styled Invoice Sheet */}

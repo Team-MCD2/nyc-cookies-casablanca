@@ -185,26 +185,45 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(product?.imageUrl ?? null);
+  const [uploading, setUploading] = useState(false);
   const isEdit = !!product;
+
+  async function onImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/admin/upload-product-image", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload échoué");
+      setImageUrl(data.url);
+      toast({ title: "Image uploadée", type: "success" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload échoué");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
     const payload = {
-      id: isEdit ? product!.id : String(fd.get("id") ?? "").trim(),
+      id: isEdit ? product!.id : undefined,
       name: String(fd.get("name") ?? "").trim(),
       description: String(fd.get("description") ?? "").trim(),
       category: String(fd.get("category") ?? "cookie") as ProductCategory,
       price_mad: Number(fd.get("price_mad") ?? 0),
       stock: Number(fd.get("stock") ?? 0),
       active: fd.get("active") === "on",
+      image_url: imageUrl,
     };
 
-    if (!payload.id) {
-      setError("L'identifiant est requis (ex : p_soho).");
-      return;
-    }
     if (!payload.name) {
       setError("Le nom est requis.");
       return;
@@ -215,7 +234,7 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
         await upsertProduct(payload);
         toast({
           title: isEdit ? "Produit modifié" : "Produit créé",
-          message: `${payload.name} (${payload.id})`,
+          message: payload.name,
           type: "success",
         });
         onClose();
@@ -234,21 +253,27 @@ function ProductFormModal({ open, product, onClose }: FormModalProps) {
       size="md"
     >
       <form onSubmit={onSubmit} className="stack">
+        {isEdit && (
+          <Field>
+            <Label>Identifiant</Label>
+            <Input value={product!.id} disabled />
+            <FieldHelp>L&apos;identifiant est généré automatiquement à la création.</FieldHelp>
+          </Field>
+        )}
+
         <Field>
-          <Label htmlFor="id">Identifiant</Label>
+          <Label htmlFor="image">Image (optionnel)</Label>
           <Input
-            id="id"
-            name="id"
-            placeholder="p_soho"
-            defaultValue={product?.id ?? ""}
-            disabled={isEdit}
-            required
-            pattern="[a-z0-9_]+"
+            id="image"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={onImageChange}
+            disabled={uploading || pending}
           />
           <FieldHelp>
-            {isEdit
-              ? "L'identifiant ne peut pas être modifié."
-              : "Lettres minuscules, chiffres et _ uniquement (ex : p_soho)."}
+            {imageUrl
+              ? "Image personnalisée sélectionnée. Sinon, l'image par défaut selon le nom est utilisée."
+              : "Sans upload, le mécanisme d'images par défaut (nom du cookie) s'applique."}
           </FieldHelp>
         </Field>
 

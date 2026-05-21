@@ -8,7 +8,7 @@ import { OrderStatusBadge, InvoiceStatusBadge } from "@/components/status-badge"
 import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { auth } from "@clerk/nextjs/server";
 import { getProForUser } from "@/lib/auth";
-import { listOrdersForPro, listInvoicesForPro } from "@/lib/queries";
+import { listOrdersForPro, listInvoicesForPro, getProById } from "@/lib/queries";
 import { money, formatDate } from "@/lib/utils";
 import { InvoiceActions } from "@/components/invoice-actions";
 
@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 
 export default async function ProDashboardPage() {
   const { userId } = await auth();
-  const pro = userId ? await getProForUser(userId) : null;
+  const proRow = userId ? await getProForUser(userId) : null;
+  const pro = proRow?.id ? await getProById(proRow.id) : null;
 
   if (!pro) {
     return (
@@ -122,7 +123,7 @@ export default async function ProDashboardPage() {
                         <InvoiceStatusBadge status={i.status} />
                       </Td>
                       <Td className="text-right">
-                        <InvoiceActions reference={i.id} proEmail={pro.email} />
+                        <InvoiceActions reference={i.id} />
                       </Td>
                     </Tr>
                   ))}

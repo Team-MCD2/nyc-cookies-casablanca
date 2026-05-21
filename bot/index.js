@@ -267,6 +267,20 @@ const ORDER_STATUS_LABELS = {
     cancelled: 'Annulée',
 };
 
+const PAYMENT_STATUS_LABELS = {
+    pending: 'En attente',
+    paid: 'Payé',
+};
+
+const PAYMENT_STATUS_ALIASES = {
+    attente: 'pending',
+    pending: 'pending',
+    impaye: 'pending',
+    paye: 'paid',
+    payee: 'paid',
+    paid: 'paid',
+};
+
 const ORDER_STATUS_ALIASES = {
     attente: 'pending',
     en_attente: 'pending',
@@ -299,6 +313,7 @@ function getMenuText() {
         '• `.commandes active` — En cours (attente + prépa + prête)',
         '• `.commande REF` — Détail d\'une commande',
         '• `.statut REF prep` — Changer le statut (attente/prep/pret/livre/annule)',
+        '• `.paiement REF paye` — Changer le paiement (attente/paye)',
         '• `.avancer REF` — Passer au statut suivant',
         '• `.ventes` — CA et stats du jour (Maroc)',
         '• `.demandes` — Demandes compte pro en attente',
@@ -446,7 +461,23 @@ function parseOrderStatusInput(raw) {
 }
 
 function statusLabel(status) {
-    return ORDER_STATUS_LABELS[status] || status;
+    return ORDER_STATUS_LABELS[status] || status || 'Inconnu';
+}
+
+function paymentLabel(payment) {
+    return PAYMENT_STATUS_LABELS[payment] || payment || 'Inconnu';
+}
+
+function parsePaymentStatusInput(raw) {
+    if (!raw) return null;
+    const key = raw.toLowerCase().replace(/é/g, 'e').replace(/è/g, 'e');
+    return PAYMENT_STATUS_ALIASES[key] || null;
+}
+
+/** Retire backticks / ponctuation WhatsApp autour de la référence commande. */
+function sanitizeOrderRef(raw) {
+    if (!raw) return '';
+    return String(raw).replace(/^[`'"]+|[`'".:,;]+$/g, '').trim();
 }
 
 function formatOrdersList(data) {
@@ -475,12 +506,15 @@ function formatOrdersList(data) {
 
 function formatOrderDetail(data) {
     const o = data.order;
+    const clientLine = o.customerLabel
+        ? `*Client pro :* ${o.customerLabel}`
+        : `*Client :* ${o.customer_type}`;
     const lines = [
         `📦 *Commande ${o.reference}*`,
         '',
-        `Statut : *${statusLabel(o.status)}*`,
-        `Paiement : ${o.payment}`,
-        `Client : ${o.customer_type}${o.customerLabel ? ` — ${o.customerLabel}` : ''}`,
+        `*Statut :* ${statusLabel(o.status)}`,
+        `*Paiement :* ${paymentLabel(o.payment)}`,
+        clientLine,
         `Total : *${o.total_mad} MAD*`,
         `Date : ${new Date(o.created_at).toLocaleString('fr-MA', { timeZone: 'Africa/Casablanca' })}`,
         '',
@@ -720,13 +754,46 @@ async function handleIncomingMessages(m) {
                     });
                     continue;
                 }
+                const orderRef = sanitizeOrderRef(refMatch[1]);
                 try {
-                    const data = await fetchShop('order', { reference: refMatch[1] });
+                    const data = await fetchShop('order', { reference: orderRef });
                     await sendLongMessage(sender, formatOrderDetail(data));
                 } catch (err) {
                     const msg = err.message === 'not_found'
                         ? '❌ Commande introuvable.'
                         : '❌ Impossible de récupérer la commande.';
+                    await sock.sendMessage(sender, { text: msg });
+                }
+            } else if (cmd === '.paiement' || cmd === '.payment') {
+                const payMatch = text.trim().match(/^\.(?:paiement|payment)\s+(\S+)\s+(\S+)/i);
+                if (!payMatch) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Format: `.paiement REF paye`\nValeurs: attente, paye',
+                    });
+                    continue;
+                }
+                const [, reference, paymentRaw] = payMatch;
+                const payment = parsePaymentStatusInput(paymentRaw);
+                if (!payment) {
+                    await sock.sendMessage(sender, {
+                        text: '❌ Paiement invalide. Utilisez: attente, paye',
+                    });
+                    continue;
+                }
+                try {
+                    const result = await patchShop({
+                        action: 'set-payment',
+                        reference: sanitizeOrderRef(reference),
+                        payment,
+                    });
+                    const note = result.unchanged ? ' (déjà à ce statut)' : '';
+                    await sock.sendMessage(sender, {
+                        text: `✅ *${sanitizeOrderRef(reference)}*\n${paymentLabel(result.previousPayment)} → *${paymentLabel(result.payment)}*${note}`,
+                    });
+                } catch (err) {
+                    const msg = err.message === 'not_found'
+                        ? '❌ Commande introuvable.'
+                        : '❌ Impossible de mettre à jour le paiement.';
                     await sock.sendMessage(sender, { text: msg });
                 }
             } else if (cmd === '.statut' || cmd === '.status') {
@@ -746,7 +813,7 @@ async function handleIncomingMessages(m) {
                     continue;
                 }
                 try {
-                    const result = await patchShop({ action: 'set-status', reference, status });
+                    const result = await patchShop({ action: 'set-status', reference: sanitizeOrderRef(reference), status });
                     const note = result.unchanged ? ' (déjà à ce statut)' : '';
                     await sock.sendMessage(sender, {
                         text: `✅ *${reference}*\n${statusLabel(result.previousStatus)} → *${statusLabel(result.status)}*${note}`,
@@ -764,7 +831,7 @@ async function handleIncomingMessages(m) {
                     continue;
                 }
                 try {
-                    const result = await patchShop({ action: 'advance', reference: advMatch[1] });
+                    const result = await patchShop({ action: 'advance', reference: sanitizeOrderRef(advMatch[1]) });
                     const note = result.unchanged ? '\nℹ️ Déjà au statut final du flux.' : '';
                     await sock.sendMessage(sender, {
                         text: `✅ *${result.reference}*\n${statusLabel(result.previousStatus)} → *${statusLabel(result.status)}*${note}`,

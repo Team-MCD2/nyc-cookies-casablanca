@@ -287,20 +287,18 @@ function ProRequestRow({ request }: { request: ProRequest }) {
   function approve() {
     start(async () => {
       try {
-        const { token } = await createInvitation({
+        const { link } = await createInvitation({
           company: request.company,
           contactName: request.contactName,
           email: request.email,
           phone: request.phone,
         });
         await updateProRequestStatus(request.id, "approved");
-        
-        const link = `${window.location.origin}/pro-invite?token=${token}`;
         setGeneratedLink(link);
         
         toast({ 
           title: "Demande approuvée ✅", 
-          message: "L'invitation a été générée avec succès.", 
+          message: "Lien envoyé par WhatsApp au numéro de la société.", 
           type: "success" 
         });
         

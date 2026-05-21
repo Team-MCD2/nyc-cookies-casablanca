@@ -87,6 +87,8 @@ export const PRO_NAV = [
   },
   {
     label: "Facturation",
-    links: [{ href: "/pro/invoices", icon: "file-text", text: "Mes factures" }],
+    links: [
+      { href: "/pro/invoices", icon: "file-text", text: "Mes factures" },
+    ],
   },
 ] as const;

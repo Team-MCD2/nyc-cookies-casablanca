@@ -37,7 +37,7 @@ export async function GET(req: Request) {
   const { count: pendingInvoices } = await sb
     .from("invoices")
     .select("*", { count: "exact", head: true })
-    .eq("status", "pending");
+    .in("status", ["upcoming", "overdue"]);
 
   return NextResponse.json({
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",

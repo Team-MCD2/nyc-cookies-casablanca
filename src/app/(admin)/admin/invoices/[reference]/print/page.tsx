@@ -3,6 +3,7 @@ import Image from "next/image";
 import { getInvoiceByReference, listProducts } from "@/lib/queries";
 import { money, formatDate } from "@/lib/utils";
 import { SITE } from "@/lib/site";
+import { InvoicePrintShell } from "@/components/invoice-print-shell";
 
 export default async function InvoicePrintPage({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
@@ -21,10 +22,11 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
   const clientAddress = pro?.address || "—";
   const clientIce = pro?.ice || null;
 
-  // VAT Logic: only if pro has ICE
-  const hasTva = !!clientIce;
+  const tvaRate = invoice.tvaRate ?? (clientIce ? 20 : null);
+  const hasTva = tvaRate != null && tvaRate > 0;
   const totalTtc = invoice.amount;
-  const totalHt = hasTva ? Math.round(totalTtc / 1.2) : totalTtc;
+  const totalHt =
+    invoice.amountHt ?? (hasTva ? Math.round(totalTtc / (1 + (tvaRate as number) / 100)) : totalTtc);
   const tvaAmount = totalTtc - totalHt;
 
   // Resolve product names and prices for order items
@@ -50,20 +52,7 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
 
   return (
     <div className="bg-white text-[#2b2b2b] min-h-screen p-8 sm:p-12 font-sans antialiased selection:bg-[#c0b09c]/20 max-w-4xl mx-auto print:p-0 print:mx-0 print:max-w-none">
-      {/* Print Trigger Button (Only visible on screen, hidden in print) */}
-      <div className="mb-6 flex justify-end print:hidden">
-        <button
-          onClick={() => window.print()}
-          className="bg-[#c0b09c] hover:bg-[#b0a08c] text-white px-5 py-2 rounded shadow font-medium transition duration-150 flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-          </svg>
-          Imprimer la facture (PDF)
-        </button>
-      </div>
-
-      {/* Corporate Styled Invoice Sheet */}
+      <InvoicePrintShell>
       <div className="border border-gray-100 p-8 sm:p-12 rounded-lg shadow-sm print:border-none print:shadow-none print:p-0">
         
         {/* En-tête */}
@@ -173,7 +162,7 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
                     <td className="p-2.5 font-mono text-right text-gray-800 font-medium">{money(totalHt)}</td>
                   </tr>
                   <tr className="border-b border-gray-100">
-                    <td className="p-2.5 text-gray-400 font-bold uppercase text-xs text-right">TVA (20%)</td>
+                    <td className="p-2.5 text-gray-400 font-bold uppercase text-xs text-right">TVA ({tvaRate}%)</td>
                     <td className="p-2.5 font-mono text-right text-gray-800 font-medium">{money(tvaAmount)}</td>
                   </tr>
                   <tr className="bg-[#c0b09c]/10">
@@ -215,9 +204,7 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
           </div>
         </footer>
       </div>
-
-      {/* Auto print trigger */}
-      <script dangerouslySetInnerHTML={{ __html: "window.print();" }} />
+      </InvoicePrintShell>
     </div>
   );
 }

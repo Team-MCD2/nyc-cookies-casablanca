@@ -75,6 +75,9 @@ export interface Invoice {
   dueDate: string;
   amount: number;
   status: InvoiceStatus;
+  sentToClient?: boolean;
+  tvaRate?: number | null;
+  amountHt?: number | null;
   pro?: Pro | null;
   customer?: Customer | null;
 }

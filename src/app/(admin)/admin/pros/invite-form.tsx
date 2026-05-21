@@ -20,15 +20,14 @@ export function InviteProForm() {
     setError(null);
     const fd = new FormData(e.currentTarget);
     try {
-      const { token } = await createInvitation({
+      const { link } = await createInvitation({
         company: String(fd.get("company") ?? ""),
         contactName: String(fd.get("contactName") ?? ""),
         email: String(fd.get("email") ?? ""),
         phone: String(fd.get("phone") ?? ""),
       });
-      const link = `${window.location.origin}/pro-invite?token=${token}`;
       setGeneratedLink(link);
-      toast({ title: "Invitation créée", message: "Lien prêt à partager.", type: "success" });
+      toast({ title: "Invitation créée", message: "Lien envoyé par WhatsApp à la société.", type: "success" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
     } finally {

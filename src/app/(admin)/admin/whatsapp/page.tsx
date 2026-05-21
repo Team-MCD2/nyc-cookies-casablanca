@@ -29,6 +29,7 @@ const BOT_COMMANDS = [
   { cmd: ".commandes", desc: "Commandes en attente (.commandes active / prep / tout)" },
   { cmd: ".commande REF", desc: "Détail d'une commande (articles, client, statut)" },
   { cmd: ".statut REF prep", desc: "Changer le statut (attente, prep, pret, livre, annule)" },
+  { cmd: ".paiement REF paye", desc: "Changer le paiement (attente, paye)" },
   { cmd: ".avancer REF", desc: "Passer au statut suivant (attente → prépa → prête → livrée)" },
   { cmd: ".ventes", desc: "CA et stats du jour (fuseau Maroc)" },
   { cmd: ".demandes", desc: "Demandes compte pro en attente" },

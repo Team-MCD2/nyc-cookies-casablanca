@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const VALID_STATUSES = ["pending", "preparing", "ready", "delivered", "cancelled"] as const;
+const VALID_PAYMENTS = ["pending", "paid"] as const;
 const FLOW = ["pending", "preparing", "ready", "delivered"] as const;
 
 function checkAuth(req: Request) {
@@ -181,7 +182,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { action?: string; reference?: string; status?: string };
+  let body: { action?: string; reference?: string; status?: string; payment?: string };
   try {
     body = await req.json();
   } catch {
@@ -196,12 +197,34 @@ export async function PATCH(req: Request) {
   const sb = createAdminClient();
   const { data: cur, error: fetchErr } = await sb
     .from("orders")
-    .select("status")
+    .select("status, payment")
     .eq("reference", reference)
     .maybeSingle();
 
   if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 });
   if (!cur) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  if (action === "set-payment") {
+    const payment = body.payment;
+    if (!payment || !VALID_PAYMENTS.includes(payment as (typeof VALID_PAYMENTS)[number])) {
+      return NextResponse.json({ error: "invalid_payment" }, { status: 400 });
+    }
+    if (payment === cur.payment) {
+      return NextResponse.json({
+        reference,
+        previousPayment: cur.payment,
+        payment: cur.payment,
+        unchanged: true,
+      });
+    }
+    const { error: payErr } = await sb.from("orders").update({ payment }).eq("reference", reference);
+    if (payErr) return NextResponse.json({ error: payErr.message }, { status: 500 });
+    return NextResponse.json({
+      reference,
+      previousPayment: cur.payment,
+      payment,
+    });
+  }
 
   let nextStatus: string;
 

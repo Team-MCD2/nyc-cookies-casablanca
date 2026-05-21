@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/misc";
 import { InvoiceStatusBadge } from "@/components/status-badge";
+import { AdminInvoiceActions } from "@/components/admin-invoice-actions";
 import { TableWrap, Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { listInvoices } from "@/lib/queries";
 import { money, formatDate } from "@/lib/utils";
-import { Printer } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +32,7 @@ export default async function AdminInvoicesPage() {
                 <Th>Échéance</Th>
                 <Th className="text-right">Montant</Th>
                 <Th>Statut</Th>
+                <Th>Envoi</Th>
                 <Th className="text-center">Actions</Th>
               </Tr>
             </Thead>
@@ -50,15 +51,15 @@ export default async function AdminInvoicesPage() {
                     <Td>
                       <InvoiceStatusBadge status={i.status} />
                     </Td>
+                    <Td>
+                      {i.sentToClient ? (
+                        <Badge variant="success" className="text-[0.7rem]">Envoyée</Badge>
+                      ) : (
+                        <Badge variant="warning" className="text-[0.7rem]">Brouillon</Badge>
+                      )}
+                    </Td>
                     <Td className="text-center">
-                      <Link
-                        href={`/admin/invoices/${i.id}/print`}
-                        target="_blank"
-                        className="inline-flex items-center justify-center rounded-md p-2 text-text-2 transition-colors hover:bg-surface-2 hover:text-accent"
-                        title="Imprimer la facture"
-                      >
-                        <Printer className="h-4 w-4" />
-                      </Link>
+                      <AdminInvoiceActions invoice={i} />
                     </Td>
                   </Tr>
                 );
