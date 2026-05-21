@@ -309,15 +309,50 @@ const ORDER_STATUS_ALIASES = {
     cancelled: 'cancelled',
 };
 
+/** Commandes reconnues par le bot — tout le reste (ex. `.musique`) est ignoré. */
+const BOT_COMMANDS = new Set([
+    '.menu',
+    '.guide', '.aide', '.help',
+    '.authorise', '.authorize', '.autorise',
+    '.unauthorise', '.unauthorize', '.unautorise',
+    '.update',
+    '.commandes', '.orders',
+    '.commande', '.order',
+    '.paiement', '.payment',
+    '.statut', '.status',
+    '.avancer', '.advance',
+    '.stock', '.stocks',
+    '.produits', '.products',
+    '.ventes', '.ca', '.stats',
+    '.demandes', '.demandespro',
+    '.ping',
+    '.creneau',
+    '.pro',
+    '.prosend',
+]);
+
+function isKnownBotCommand(cleanText, cmd) {
+    if (BOT_COMMANDS.has(cmd)) return true;
+    const prefixes = [
+        '.authorise', '.authorize', '.autorise',
+        '.unauthorise', '.unauthorize', '.unautorise',
+        '.prosend',
+        '.ping',
+    ];
+    return prefixes.some((p) => cleanText.startsWith(p));
+}
+
 function getMenuText() {
     return [
         '🍪 *NYC Cookies — Commandes*',
         '',
+        '*Général*',
         '`.menu`',
         '`.guide`',
         '`.ping`',
         '`.update`',
         '',
+        '*Boutique — commandes*',
         '`.commandes`',
         '`.commande`',
         '`.statut`',
@@ -326,13 +361,16 @@ function getMenuText() {
         '`.ventes`',
         '`.demandes`',
         '',
+        '*Boutique — catalogue*',
         '`.stock`',
         '`.produits`',
         '',
+        '*Clients pro*',
         '`.pro`',
         '`.prosend`',
         '`.creneau`',
         '',
+        '*Administration*',
         '`.authorise`',
         '`.unauthorise`',
     ].join('\n');
@@ -455,7 +493,7 @@ function formatAdminSummary(data) {
         lines.push('');
     }
 
-    lines.push(`🔗 Admin : ${data.siteUrl}/admin`);
+    lines.push(`🔗 Admin : ${data.siteUrl}/admin/dashboard`);
     return lines.join('\n');
 }
 
@@ -623,7 +661,7 @@ function formatProRequestsList(data) {
     data.requests.forEach((r) => {
         lines.push(`• *${r.company}*`, `  ${r.contact_name} — ${r.phone}`, `  ${r.email || '—'}`);
     });
-    lines.push('', `🔗 ${SITE_URL}/admin/pro-requests`);
+    lines.push('', `🔗 ${SITE_URL}/admin/pros`);
     return lines.join('\n');
 }
 
@@ -724,6 +762,8 @@ async function handleIncomingMessages(m) {
             if (!isCommand) continue;
 
             const cmd = cleanText.split(/\s+/)[0].split('(')[0].split(':')[0];
+
+            if (!isKnownBotCommand(cleanText, cmd)) continue;
 
             if (cmd === '.menu') {
                 await sendMenu(sender);

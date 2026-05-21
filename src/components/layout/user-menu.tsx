@@ -28,8 +28,34 @@ const ROLE_META: Record<Role, { label: string; variant: "danger" | "accent" | "i
 
 export function UserMenu({ user, spaceHref, spaceLabel }: UserMenuProps) {
   const [open, setOpen] = useState(false);
+  const [panelTop, setPanelTop] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { signOut } = useClerk();
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function updatePanelTop() {
+      if (!ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      setPanelTop(rect.bottom + 8);
+    }
+    updatePanelTop();
+    window.addEventListener("resize", updatePanelTop);
+    window.addEventListener("scroll", updatePanelTop, true);
+    return () => {
+      window.removeEventListener("resize", updatePanelTop);
+      window.removeEventListener("scroll", updatePanelTop, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -74,7 +100,8 @@ export function UserMenu({ user, spaceHref, spaceLabel }: UserMenuProps) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right overflow-hidden rounded-lg border border-border bg-surface shadow-2xl"
+          style={isMobile ? { top: panelTop } : undefined}
+          className="fixed left-4 right-4 z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72 sm:origin-top-right"
         >
           {/* Identity card */}
           <div className="border-b border-border bg-surface-2 p-4">

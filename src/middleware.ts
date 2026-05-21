@@ -33,8 +33,12 @@ const isRetiredPublicRoute = createRouteMatcher([
  * "Customize session token" claim is configured.
  */
 export default clerkMiddleware(async (auth, req) => {
+  const url = new URL(req.url);
+  if (url.pathname === "/admin" || url.pathname === "/admin/") {
+    return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+  }
+
   if (isRetiredPublicRoute(req)) {
-    const url = new URL(req.url);
     if (url.pathname.startsWith("/admin/customers")) {
       return NextResponse.redirect(new URL("/admin/pros", req.url));
     }

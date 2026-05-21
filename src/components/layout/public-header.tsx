@@ -103,10 +103,13 @@ export function PublicHeader({
       {/* Mobile nav drawer */}
       <div
         className={cn(
-          "absolute inset-x-0 top-full flex flex-col gap-3 border-b border-border bg-surface px-4 py-4 md:hidden",
+          "absolute inset-x-0 top-full flex flex-col gap-3 border-b border-border bg-surface px-5 py-5 md:hidden",
           open ? "flex" : "hidden",
         )}
       >
+        <p className="text-[0.7rem] font-display uppercase tracking-[0.18em] text-text-muted">
+          Menu
+        </p>
         {PUBLIC_NAV.map((i) => (
           <Link
             key={i.href}
