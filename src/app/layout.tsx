@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { Bebas_Neue, Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
+import { CookieNavigationLoader } from "@/components/cookie-navigation-loader";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
@@ -164,6 +165,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           >
             Aller au contenu
           </a>
+          <CookieNavigationLoader />
           {children}
           <Toaster />
         </body>

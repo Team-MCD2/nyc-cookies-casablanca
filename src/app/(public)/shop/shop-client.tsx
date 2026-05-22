@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, ShoppingBag, Trash2, CreditCard } from "lucide-react";
+import { Plus, Minus, ShoppingBag, Trash2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Eyebrow, Empty } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
@@ -106,17 +106,60 @@ export function ShopClient({ products, initialCategory }: ShopClientProps) {
         <Empty title="Aucun produit dans cette catégorie." />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p) => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              footerSlot={
-                <Button size="sm" onClick={() => addToCart(p.id)}>
-                  <Plus className="h-4 w-4" /> Panier
-                </Button>
-              }
-            />
-          ))}
+          {filtered.map((p) => {
+            const qty = cart[p.id] ?? 0;
+            return (
+              <ProductCard
+                key={p.id}
+                product={p}
+                footerSlot={
+                  qty > 0 ? (
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <div className="inline-flex items-center overflow-hidden rounded-md border border-border-strong">
+                        <button
+                          type="button"
+                          className="bg-surface-2 px-2.5 py-1.5 text-text-2 hover:bg-surface-3 hover:text-text"
+                          onClick={() => setQty(p.id, qty - 1)}
+                          aria-label="Diminuer la quantité"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="min-w-[2rem] bg-surface px-2 py-1.5 text-center text-[0.9rem] tabular-nums">
+                          {qty}
+                        </span>
+                        <button
+                          type="button"
+                          className="bg-surface-2 px-2.5 py-1.5 text-text-2 hover:bg-surface-3 hover:text-text"
+                          onClick={() => setQty(p.id, qty + 1)}
+                          aria-label="Augmenter la quantité"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Retirer du panier"
+                        onClick={() => setQty(p.id, 0)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        addToCart(p.id);
+                      }}
+                    >
+                      <Plus className="h-4 w-4" /> Ajouter au panier
+                    </Button>
+                  )
+                }
+              />
+            );
+          })}
         </div>
       )}
 

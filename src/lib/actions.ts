@@ -236,6 +236,9 @@ export async function advanceOrderStatus(reference: string) {
   const next = flow[Math.min(Math.max(idx, 0) + 1, flow.length - 1)];
   await sb.from("orders").update({ status: next }).eq("reference", reference);
   revalidatePath("/admin/orders");
+  revalidatePath("/account");
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${reference}`);
 }
 
 export async function updateOrderStatus(reference: string, status: OrderStatus) {
@@ -244,6 +247,12 @@ export async function updateOrderStatus(reference: string, status: OrderStatus) 
   const { error } = await sb.from("orders").update({ status }).eq("reference", reference);
   if (error) throw error;
   revalidatePath("/admin/orders");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/account");
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${reference}`);
+  revalidatePath("/pro/orders");
+  revalidatePath("/pro/dashboard");
 }
 
 export async function updateOrderPayment(reference: string, payment: PaymentStatus) {
@@ -256,6 +265,9 @@ export async function updateOrderPayment(reference: string, payment: PaymentStat
   revalidatePath("/admin/invoices");
   revalidatePath("/pro/invoices");
   revalidatePath("/pro/dashboard");
+  revalidatePath("/account");
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${reference}`);
 }
 
 // ---------- Invoices ----------

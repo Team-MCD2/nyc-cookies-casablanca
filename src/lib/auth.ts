@@ -61,7 +61,7 @@ export async function requireRole(allowed: Role[]) {
 export function roleHome(role: Role) {
   if (role === "admin") return "/admin/dashboard";
   if (role === "pro") return "/pro/dashboard";
-  return "/devenir-pro";
+  return "/account";
 }
 
 /** Lookup the customer/pro row matching the current Clerk user. */

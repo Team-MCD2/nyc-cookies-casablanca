@@ -87,6 +87,25 @@
 .animate-float { animation: float 6s ease-in-out infinite; }
 .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
 
+@keyframes cookie-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.08); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.cookie-loader-spin {
+  animation: cookie-spin 1.1s ease-in-out infinite;
+}
+
+.cookie-loader-overlay {
+  animation: fade-in 0.15s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .particle {
   position: absolute;
   pointer-events: none;

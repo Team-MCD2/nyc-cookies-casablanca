@@ -62,9 +62,8 @@ export default async function AccountOrderDetailPage({ params }: PageProps) {
   const itemsTotal = lineItems.reduce((s, l) => s + l.subtotal, 0);
   const totalQty = lineItems.reduce((s, l) => s + l.qty, 0);
   const cancelled = order.status === "cancelled";
-  const currentStep = cancelled
-    ? -1
-    : STATUS_TIMELINE.findIndex((s) => s.key === order.status);
+  const stepIndex = STATUS_TIMELINE.findIndex((s) => s.key === order.status);
+  const currentStep = cancelled ? -1 : stepIndex >= 0 ? stepIndex : 0;
 
   return (
     <div className="stack-lg">

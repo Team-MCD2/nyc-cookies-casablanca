@@ -3,6 +3,7 @@ import { PublicFooter } from "@/components/layout/public-footer";
 import { currentUser } from "@clerk/nextjs/server";
 import {
   consumePendingInvitation,
+  ensureCustomerRow,
   ensureProRow,
   getCurrentSession,
   roleHome,
@@ -18,6 +19,9 @@ export default async function PublicLayout({ children }: { children: React.React
   // shows up immediately in the admin tables.
   if (session?.role === "pro") {
     await ensureProRow().catch(() => undefined);
+  }
+  if (session?.role === "b2c") {
+    await ensureCustomerRow().catch(() => undefined);
   }
 
   const role = session?.role;

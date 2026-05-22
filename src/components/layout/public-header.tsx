@@ -83,7 +83,7 @@ export function PublicHeader({
               </Link>
             </div>
           )}
-          <Link href="/login">
+          <Link href={user ? spaceHref : "/login"}>
             <Button variant="primary" size="sm">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Espace Pro</span>
@@ -120,8 +120,15 @@ export function PublicHeader({
             {i.label}
           </Link>
         ))}
+        <Link
+          href={user ? spaceHref : "/login"}
+          onClick={() => setOpen(false)}
+          className="border-t border-border pt-3 text-[0.95rem] font-medium text-accent hover:text-accent-hover"
+        >
+          Espace Pro
+        </Link>
         {!user && (
-          <div className="flex flex-col gap-2 border-t border-border pt-3 sm:hidden">
+          <div className="flex flex-col gap-2 sm:hidden">
             <Link
               href="/login"
               onClick={() => setOpen(false)}

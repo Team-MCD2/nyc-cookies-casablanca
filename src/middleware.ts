@@ -14,12 +14,8 @@ const isProtectedRoute = createRouteMatcher([
   "/pro/(.*)",
 ]);
 
-/** Boutique et espace particulier désactivés — plateforme réservée aux pros et admins. */
+/** Ancienne page clients B2C admin — redirigée vers la gestion pros. */
 const isRetiredPublicRoute = createRouteMatcher([
-  "/shop",
-  "/shop/(.*)",
-  "/account",
-  "/account/(.*)",
   "/admin/customers",
   "/admin/customers/(.*)",
 ]);
@@ -32,10 +28,32 @@ const isRetiredPublicRoute = createRouteMatcher([
  * reads from publicMetadata directly — so it works whether or not Clerk's
  * "Customize session token" claim is configured.
  */
+function roleFromClaims(sessionClaims: unknown): string | null {
+  const meta = (sessionClaims as { metadata?: { role?: unknown } } | undefined)?.metadata;
+  return typeof meta?.role === "string" ? meta.role : null;
+}
+
 export default clerkMiddleware(async (auth, req) => {
   const url = new URL(req.url);
   if (url.pathname === "/admin" || url.pathname === "/admin/") {
     return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+  }
+
+  const { userId, sessionClaims, redirectToSignIn } = await auth();
+
+  if (
+    userId &&
+    (url.pathname === "/login" ||
+      url.pathname.startsWith("/login/") ||
+      url.pathname === "/after-sign-in")
+  ) {
+    const role = roleFromClaims(sessionClaims);
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+    }
+    if (role === "pro") {
+      return NextResponse.redirect(new URL("/pro/dashboard", req.url));
+    }
   }
 
   if (isRetiredPublicRoute(req)) {
@@ -46,7 +64,6 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   if (!isProtectedRoute(req)) return;
-  const { userId, redirectToSignIn } = await auth();
   if (!userId) return redirectToSignIn({ returnBackUrl: req.url });
 });
 
