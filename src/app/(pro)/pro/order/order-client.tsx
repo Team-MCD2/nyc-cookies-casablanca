@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, CreditCard, Trash2 } from "lucide-react";
 import { CartQuantityControl } from "@/components/cart-quantity-control";
+import { CookieLoadingOverlay } from "@/components/cookie-loading-overlay";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/misc";
@@ -19,7 +20,8 @@ interface Props {
 
 export function ProOrderClient({ products }: Props) {
   const [cart, setCart] = useState<Record<string, number>>({});
-  const [pending, start] = useTransition();
+  const [validating, setValidating] = useState(false);
+  const [, start] = useTransition();
   const router = useRouter();
 
   const items = Object.entries(cart)
@@ -44,6 +46,7 @@ export function ProOrderClient({ products }: Props) {
       toast({ title: "Panier vide", type: "warning" });
       return;
     }
+    setValidating(true);
     start(async () => {
       try {
         const payload = items.map((it) => ({ pid: it.p.id, qty: it.qty }));
@@ -55,8 +58,9 @@ export function ProOrderClient({ products }: Props) {
           timeout: 5000,
         });
         setCart({});
-        setTimeout(() => router.push("/pro/orders"), 800);
+        router.push("/pro/orders");
       } catch (e) {
+        setValidating(false);
         toast({
           title: "Erreur",
           message: e instanceof Error ? e.message : "Échec de la commande.",
@@ -67,7 +71,12 @@ export function ProOrderClient({ products }: Props) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+    <>
+      <CookieLoadingOverlay
+        visible={validating}
+        message="Validation de votre commande…"
+      />
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {products.map((p) => (
           <ProductCard
@@ -119,14 +128,15 @@ export function ProOrderClient({ products }: Props) {
                 <span className="text-text-3">Total</span>
                 <span className="font-display text-[1.5rem] text-accent">{money(total)}</span>
               </div>
-              <Button block onClick={submit} disabled={pending} className="mt-4">
+              <Button block onClick={submit} disabled={validating} className="mt-4">
                 <CreditCard className="h-4 w-4" />
-                {pending ? "Validation…" : "Passer commande (30j)"}
+                {validating ? "Validation…" : "Passer commande (30j)"}
               </Button>
             </>
           )}
         </Card>
       </div>
     </div>
+    </>
   );
 }

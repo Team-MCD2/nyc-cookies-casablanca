@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CookieLoadingOverlay } from "@/components/cookie-loading-overlay";
 
 const MIN_VISIBLE_MS = 380;
 
@@ -69,30 +69,5 @@ export function CookieNavigationLoader() {
     return () => document.removeEventListener("click", onClick, true);
   }, [pathname, show]);
 
-  if (!visible) return null;
-
-  return (
-    <div
-      className="cookie-loader-overlay fixed inset-0 z-[200] flex items-center justify-center bg-bg/75 backdrop-blur-sm"
-      role="status"
-      aria-live="polite"
-      aria-label="Chargement"
-    >
-      <div className="flex flex-col items-center gap-4">
-        <div className="cookie-loader-spin relative h-20 w-20">
-          <Image
-            src="/nyclogo.png"
-            alt=""
-            width={80}
-            height={80}
-            className="h-20 w-20 rounded-full object-cover"
-            priority
-          />
-        </div>
-        <p className="font-display text-[1.1rem] uppercase tracking-[0.2em] text-accent animate-pulse">
-          Chargement…
-        </p>
-      </div>
-    </div>
-  );
+  return <CookieLoadingOverlay visible={visible} />;
 }
