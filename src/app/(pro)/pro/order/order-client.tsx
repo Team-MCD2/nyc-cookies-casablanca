@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Minus, CreditCard, Trash2 } from "lucide-react";
+import { Plus, CreditCard, Trash2 } from "lucide-react";
+import { CartQuantityControl } from "@/components/cart-quantity-control";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/misc";
@@ -98,23 +99,11 @@ export function ProOrderClient({ products }: Props) {
                       <div className="font-semibold">{it.p.name}</div>
                       <div className="text-[0.85rem] text-text-3">{money(it.p.price)}</div>
                     </div>
-                    <div className="inline-flex items-center overflow-hidden rounded-md border border-border-strong">
-                      <button
-                        type="button"
-                        className="bg-surface-2 px-2 py-1 text-text-2 hover:bg-surface-3"
-                        onClick={() => setQty(it.p.id, it.qty - 1)}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-8 text-center text-[0.9rem] tabular-nums">{it.qty}</span>
-                      <button
-                        type="button"
-                        className="bg-surface-2 px-2 py-1 text-text-2 hover:bg-surface-3"
-                        onClick={() => setQty(it.p.id, it.qty + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
+                    <CartQuantityControl
+                      value={it.qty}
+                      onChange={(q) => setQty(it.p.id, q)}
+                      max={it.p.stock > 0 ? it.p.stock : undefined}
+                    />
                     <button
                       type="button"
                       className="text-text-3 hover:text-danger"

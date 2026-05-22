@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Minus, ShoppingBag, Trash2, CreditCard } from "lucide-react";
+import { Plus, ShoppingBag, Trash2, CreditCard } from "lucide-react";
+import { CartQuantityControl } from "@/components/cart-quantity-control";
 import { Button } from "@/components/ui/button";
 import { Eyebrow, Empty } from "@/components/ui/misc";
 import { Modal } from "@/components/ui/modal";
@@ -114,27 +115,11 @@ export function ShopClient({ products, initialCategory }: ShopClientProps) {
                 footerSlot={
                   qty > 0 ? (
                     <div className="flex w-full items-center justify-between gap-2">
-                      <div className="inline-flex items-center overflow-hidden rounded-md border border-border-strong">
-                        <button
-                          type="button"
-                          className="bg-surface-2 px-2.5 py-1.5 text-text-2 hover:bg-surface-3 hover:text-text"
-                          onClick={() => setQty(p.id, qty - 1)}
-                          aria-label="Diminuer la quantité"
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="min-w-[2rem] bg-surface px-2 py-1.5 text-center text-[0.9rem] tabular-nums">
-                          {qty}
-                        </span>
-                        <button
-                          type="button"
-                          className="bg-surface-2 px-2.5 py-1.5 text-text-2 hover:bg-surface-3 hover:text-text"
-                          onClick={() => setQty(p.id, qty + 1)}
-                          aria-label="Augmenter la quantité"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      <CartQuantityControl
+                        value={qty}
+                        onChange={(q) => setQty(p.id, q)}
+                        max={p.stock > 0 ? p.stock : undefined}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -180,29 +165,11 @@ export function ShopClient({ products, initialCategory }: ShopClientProps) {
                     <div className="font-semibold">{it.p.name}</div>
                     <div className="text-[0.85rem] text-text-3">{money(it.p.price)}</div>
                   </div>
-                  <div className="inline-flex items-center overflow-hidden rounded-md border border-border-strong">
-                    <button
-                      type="button"
-                      className="bg-surface-2 px-2.5 py-1.5 text-text-2 hover:bg-surface-3 hover:text-text"
-                      onClick={() => setQty(it.p.id, it.qty - 1)}
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      min={0}
-                      value={it.qty}
-                      onChange={(e) => setQty(it.p.id, parseInt(e.target.value) || 0)}
-                      className="w-11 bg-surface text-center"
-                    />
-                    <button
-                      type="button"
-                      className="bg-surface-2 px-2.5 py-1.5 text-text-2 hover:bg-surface-3 hover:text-text"
-                      onClick={() => setQty(it.p.id, it.qty + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
+                  <CartQuantityControl
+                    value={it.qty}
+                    onChange={(q) => setQty(it.p.id, q)}
+                    max={it.p.stock > 0 ? it.p.stock : undefined}
+                  />
                   <Button
                     variant="ghost"
                     size="icon"
