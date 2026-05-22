@@ -141,7 +141,7 @@ export function AdminInvoiceActions({ invoice }: { invoice: Invoice }) {
             <Send className="h-3.5 w-3.5" /> Envoyer
           </Button>
         )}
-        {invoice.sentToClient && invoice.status === "unpaid" && (
+        {invoice.sentToClient && invoice.status !== "paid" && (
           <Button
             variant="ghost"
             size="icon"
