@@ -22,8 +22,7 @@ type Cart = Record<string, number>;
 const CATEGORIES: { value: ProductCategory | "all"; label: string }[] = [
   { value: "all", label: "Tout" },
   { value: "cookie", label: "Cookies" },
-  { value: "box", label: "Boxes" },
-  { value: "icecream", label: "Glaces" },
+  { value: "box", label: "Formats" },
 ];
 
 export function ShopClient({ products, initialCategory }: ShopClientProps) {

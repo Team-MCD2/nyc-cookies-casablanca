@@ -1,26 +1,41 @@
 -- =========================================================================
---  NYC COOKIES — Seed data
---  Run AFTER schema.sql.
---
---  Only the product catalog is seeded. Customers, pros, orders and invoices
---  are populated organically as real users sign up and use the app:
---    - B2C customers: auto-created on first signed-in visit (lib/auth.ts)
---    - Pros:          created by admin via /admin/pros → "Inviter un pro"
---    - Orders:        placed via /shop or /pro/order
---    - Invoices:      auto-generated when a pro places an order
+--  NYC COOKIES — Catalogue officiel Casablanca
+--  12 cookies (4 collections) + formats Grand / Mini — sans glaces
+--  Modifiable ensuite via /admin/products
 -- =========================================================================
 
 insert into public.products (id, name, description, category, price_mad, stock, active, image_url) values
-  ('p_soho',     'Soho',               'Beurre noisette, pépites de chocolat noir 70%.',          'cookie',   28,  120, true, null),
-  ('p_central',  'Central Park',       'Chocolat lait & noir, fleur de sel.',                      'cookie',   28,  80,  true, null),
-  ('p_bronx',    'Bronx',              'Cacahuètes caramélisées, chocolat noir.',                  'cookie',   30,  60,  true, null),
-  ('p_times',    'Times Square',       'Chocolat blanc, cranberries & vanille de Madagascar.',     'cookie',   30,  75,  true, null),
-  ('p_madison',  'Madison Square',     'Caramel beurre salé fondant en cœur.',                     'cookie',   32,  50,  true, null),
-  ('p_pinkv',    'Pink Velvet',        'Red velvet, cream cheese, pépites blanches.',              'cookie',   32,  40,  true, null),
-  ('p_rikers',   'Rikers Island',      'Triple chocolat noir intense, oreo concassé.',             'cookie',   30,  55,  true, null),
-  ('p_full',     'Full Choco',         'Chocolat × chocolat × chocolat. Pour les fans.',           'cookie',   30,  70,  true, null),
-  ('p_italy',    'Little Italy',       'Pistache, amande, ricotta façon cannoli.',                 'cookie',   32,  45,  true, null),
-  ('p_box_m',    'Cookies Box Medium', '6 cookies au choix, parfait pour partager.',               'box',      160, 30,  true, null),
-  ('p_box_xl',   'Cookies Box XL',     '12 cookies au choix, pour les grandes occasions.',         'box',      300, 18,  true, null),
-  ('p_icecream', 'Cookie Ice Cream',   'Sandwich glacé entre 2 cookies maison.',                   'icecream', 38,  25,  true, null)
-on conflict (id) do nothing;
+  -- Les Iconiques — 25 MAD
+  ('p_brooklyn',      'Brooklyn',              'Les Iconiques — 100% chocolat et brownie — intense, fondant, pur cacao.',                    'cookie', 25, 42, true, null),
+  ('p_harlem',        'Harlem',                'Les Iconiques — Chocolat & noix, fondant et croquant.',                                        'cookie', 25, 37, true, null),
+  ('p_times_square',  'Times Square',          'Les Iconiques — Cœur chocolat intense, nutella.',                                              'cookie', 25, 55, true, null),
+  -- Les Audacieux — 28 MAD
+  ('p_rikers',        'Rikers Island',         'Les Audacieux — Crème spéculoos, cœur chocolat blanc, lotus.',                               'cookie', 28, 29, true, null),
+  ('p_bronx',         'Bronx',                 'Les Audacieux — Cœur Milka caramel, chocolat caramel.',                                        'cookie', 28, 33, true, null),
+  ('p_staten_island', 'Staten Island',         'Les Audacieux — Cœur pépites de chocolat, chocolat blanc Kinder Maxi.',                      'cookie', 28, 18, true, null),
+  -- Les Élite — 32 MAD
+  ('p_soho',          'Soho',                  'Les Élite — Crème Kunafa citron, zeste de citron vert et framboise.',                          'cookie', 32, 22, true, null),
+  ('p_little_italy',  'Little Italy',          'Les Élite — Tiramisu, cœur mascarpone, touche cacao.',                                         'cookie', 32, 15, true, null),
+  ('p_central_park',  'Central Park',          'Les Élite — Cœur pomme, cannelle et caramel.',                                                 'cookie', 32, 27, true, null),
+  -- Les Gourmets — 35 MAD
+  ('p_pink_velvet',   'Pink Velvet',           'Les Gourmets — Red velvet, cœur crème cheese, chocolat blanc et framboise.',                   'cookie', 35, 12, true, null),
+  ('p_wall_street',   'Wall Street',           'Les Gourmets — Cœur crème Bueno, chocolat Kinder Bueno.',                                      'cookie', 35, 19, true, null),
+  ('p_madison_square','Madison Square',        'Les Gourmets — Cœur crème pistache, framboise et éclats de pistache.',                         'cookie', 35,  8, true, null),
+  -- Formats partenaire
+  ('p_grand_cookie',  'Grand Cookie Signature','Formats partenaire — Format standard, toutes saveurs (tarif partenaire).',                    'box',    15, 200, true, null),
+  ('p_mini_cookie',   'Mini Cookie',           'Formats partenaire — Réplique miniature des saveurs signature (tarif partenaire).',            'box',     9, 200, true, null)
+on conflict (id) do update set
+  name         = excluded.name,
+  description  = excluded.description,
+  category     = excluded.category,
+  price_mad    = excluded.price_mad,
+  stock        = excluded.stock,
+  active       = true,
+  updated_at   = now();
+
+-- Anciens produits hors catalogue (boxes génériques, glaces, recettes obsolètes)
+update public.products set active = false, updated_at = now()
+where id in (
+  'p_central', 'p_times', 'p_madison', 'p_pinkv', 'p_italy', 'p_full',
+  'p_box_m', 'p_box_xl', 'p_icecream'
+);

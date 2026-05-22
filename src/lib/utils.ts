@@ -59,14 +59,15 @@ export function getProductImage(p: { name: string; category?: string; imageUrl?:
   if (n.includes("bronx")) return "/images/cookies/bronx.png";
   if (n.includes("central park")) return "/images/cookies/central-park.png";
   if (n.includes("times square")) return "/images/cookies/times-square.png";
-
-  // Switch to reliable local images due to Pollinations AI rate limits (429)
+  if (n.includes("brooklyn")) return "/images/cookies/bronx.png";
+  if (n.includes("harlem")) return "/images/cookies/pink-velvet.png";
+  if (n.includes("staten")) return "/images/cookies/times-square.png";
   if (n.includes("little italy")) return "/images/cookies/soho.png";
   if (n.includes("madison square")) return "/images/cookies/central-park.png";
-  if (n.includes("rikers island")) return "/images/cookies/bronx.png";
-  if (n.includes("full choco")) return "/images/cookies/bronx.png";
+  if (n.includes("rikers")) return "/images/cookies/bronx.png";
   if (n.includes("wall street")) return "/images/cookies/central-park.png";
-  if (n.includes("harlem")) return "/images/cookies/pink-velvet.png";
+  if (n.includes("mini cookie")) return "/images/cookies/pink-velvet.png";
+  if (n.includes("grand cookie")) return "/images/hero.png";
   
   // Categories and generic fallbacks
   if (c === "box") return "/images/hero.png";
