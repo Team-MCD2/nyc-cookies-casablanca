@@ -74,7 +74,7 @@ export function ProOrdersClient({ orders, products }: { orders: Order[], product
                     const price = product?.price || 0;
                     const total = price * item.qty;
                     return (
-                      <tr key={idx} className="bg-white">
+                      <tr key={idx} className="hover:bg-surface-2/50 transition-colors">
                         <td className="py-2 px-3">{name}</td>
                         <td className="py-2 px-3 text-center">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-text-3 tabular-nums">{money(price)}</td>
