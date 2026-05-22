@@ -3,7 +3,7 @@ import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/misc";
 import { findInvitation } from "@/lib/queries";
-import { SignUp } from "@clerk/nextjs";
+import { ProInviteSignup } from "@/components/pro-invite-signup";
 import { SITE } from "@/lib/site";
 
 interface ProInvitePageProps {
@@ -57,14 +57,11 @@ export default async function ProInvitePage({ searchParams }: ProInvitePageProps
         Activez votre compte pour <strong className="text-text">{inv.company}</strong>.
       </p>
       <div className="mt-6">
-        <SignUp
-          unsafeMetadata={{
-            invitationToken: inv.token,
-            company: inv.company,
-            contactName: inv.contactName,
-          }}
-          initialValues={{ emailAddress: inv.email }}
-          appearance={{ elements: { rootBox: "w-full", card: "bg-transparent shadow-none" } }}
+        <ProInviteSignup
+          token={inv.token}
+          company={inv.company}
+          contactName={inv.contactName}
+          email={inv.email}
         />
       </div>
       <p className="mt-5 text-center text-[0.85rem] text-text-3">
@@ -73,3 +70,4 @@ export default async function ProInvitePage({ searchParams }: ProInvitePageProps
     </div>
   );
 }
+

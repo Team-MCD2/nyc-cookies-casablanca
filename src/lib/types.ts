@@ -78,6 +78,7 @@ export interface Invoice {
   sentToClient?: boolean;
   tvaRate?: number | null;
   amountHt?: number | null;
+  shippingMad?: number | null;
   pro?: Pro | null;
   customer?: Customer | null;
 }

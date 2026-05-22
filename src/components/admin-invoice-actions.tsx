@@ -3,15 +3,17 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Printer, Send, Percent, Trash2 } from "lucide-react";
+import { Printer, Send, Percent, Trash2, Bell, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Field, Label, Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import {
   applyInvoiceTva,
+  applyInvoiceShipping,
   deleteInvoice,
   sendInvoiceToClient,
+  sendPaymentReminder,
 } from "@/lib/actions";
 import type { Invoice } from "@/lib/types";
 
@@ -42,6 +44,25 @@ export function AdminInvoiceActions({ invoice }: { invoice: Invoice }) {
     });
   }
 
+  function onRemind() {
+    start(async () => {
+      try {
+        const res = await sendPaymentReminder(invoice.id);
+        toast({
+          title: "Rappel envoyé",
+          message: res.message,
+          type: "success",
+        });
+      } catch (err) {
+        toast({
+          title: "Erreur",
+          message: err instanceof Error ? err.message : "Échec du rappel.",
+          type: "danger",
+        });
+      }
+    });
+  }
+
   function onApplyTva() {
     const rate = Number(tvaRate);
     if (Number.isNaN(rate) || rate < 0 || rate > 100) {
@@ -58,6 +79,22 @@ export function AdminInvoiceActions({ invoice }: { invoice: Invoice }) {
         toast({
           title: "Erreur",
           message: err instanceof Error ? err.message : "Échec.",
+          type: "danger",
+        });
+      }
+    });
+  }
+
+  function onApplyShipping() {
+    start(async () => {
+      try {
+        await applyInvoiceShipping(invoice.id, 20); // 20 MAD
+        toast({ title: "Expédition appliquée", message: "20 MAD ajoutés (hors TVA)", type: "success" });
+        router.refresh();
+      } catch (err) {
+        toast({
+          title: "Erreur",
+          message: err instanceof Error ? err.message : "Échec de l'application de l'expédition.",
           type: "danger",
         });
       }
@@ -104,6 +141,28 @@ export function AdminInvoiceActions({ invoice }: { invoice: Invoice }) {
             <Send className="h-3.5 w-3.5" /> Envoyer
           </Button>
         )}
+        {invoice.sentToClient && invoice.status === "unpaid" && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-warning hover:text-warning"
+            onClick={onRemind}
+            disabled={pending}
+            title="Envoyer un rappel WhatsApp"
+          >
+            <Bell className="h-4 w-4" />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={onApplyShipping}
+          disabled={pending}
+          title="Appliquer l'expédition (20 MAD)"
+        >
+          <Truck className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

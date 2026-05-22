@@ -236,12 +236,14 @@ export async function consumePendingInvitation() {
     .eq("clerk_user_id", userId)
     .maybeSingle();
   if (!existingPro) {
+    const ice = (u.unsafeMetadata.ice as string | undefined)?.trim() || null;
     await sb.from("pros").insert({
       clerk_user_id: userId,
       company: inv.company,
       contact_name: inv.contact_name,
       email: u.primaryEmail ?? inv.email,
       phone: inv.phone || u.primaryPhone,
+      ice,
       payment_terms_days: 30,
       status: "active",
     });

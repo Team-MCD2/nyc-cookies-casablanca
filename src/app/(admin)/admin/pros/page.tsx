@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/ui/misc";
-import { listPros, listInvitations, listProRequests } from "@/lib/queries";
+import { listPros, listInvitations, listProRequests, syncAllProsStatsToDb } from "@/lib/queries";
 import { syncProsFromClerk } from "@/lib/auth";
 import { ProsClient } from "./pros-client";
 
@@ -9,6 +9,7 @@ export default async function AdminProsPage() {
   // Backfill any pro Clerk users that don't yet have a Supabase row.
   // Idempotent — safe to run on every page render.
   await syncProsFromClerk().catch(() => undefined);
+  await syncAllProsStatsToDb().catch(() => undefined);
 
   const [pros, invitations, proRequests] = await Promise.all([
     listPros().catch(() => []),

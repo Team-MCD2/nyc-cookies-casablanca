@@ -15,6 +15,10 @@ export function createAdminClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: (url: RequestInfo | URL, init?: RequestInit) =>
+          fetch(url, { ...init, cache: "no-store" }),
+      },
     },
   );
 }

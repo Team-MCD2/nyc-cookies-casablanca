@@ -41,6 +41,54 @@ function rowToCustomer(r: any): Customer {
   };
 }
 
+type ProStats = { ordersCount: number; totalSpent: number; outstanding: number };
+
+function applyProStats(pro: Pro, stats?: ProStats): Pro {
+  if (!stats) return pro;
+  return {
+    ...pro,
+    ordersCount: stats.ordersCount,
+    totalSpent: stats.totalSpent,
+    outstanding: stats.outstanding,
+  };
+}
+
+/** Agrège commandes + factures impayées (source de vérité pour CMDS / CA / encours). */
+async function loadProStatsMap(
+  sb: ReturnType<typeof createAdminClient>,
+): Promise<Map<string, ProStats>> {
+  const map = new Map<string, ProStats>();
+
+  const { data: orders } = await sb
+    .from("orders")
+    .select("pro_id, total_mad")
+    .eq("customer_type", "pro")
+    .not("pro_id", "is", null);
+
+  for (const o of orders ?? []) {
+    const id = o.pro_id as string;
+    const cur = map.get(id) ?? { ordersCount: 0, totalSpent: 0, outstanding: 0 };
+    cur.ordersCount += 1;
+    cur.totalSpent += o.total_mad ?? 0;
+    map.set(id, cur);
+  }
+
+  const { data: invoices } = await sb
+    .from("invoices")
+    .select("pro_id, amount_mad, status")
+    .not("pro_id", "is", null)
+    .in("status", ["upcoming", "overdue"]);
+
+  for (const inv of invoices ?? []) {
+    const id = inv.pro_id as string;
+    const cur = map.get(id) ?? { ordersCount: 0, totalSpent: 0, outstanding: 0 };
+    cur.outstanding += inv.amount_mad ?? 0;
+    map.set(id, cur);
+  }
+
+  return map;
+}
+
 function rowToPro(r: any): Pro {
   return {
     id: r.id,
@@ -86,6 +134,7 @@ function rowToInvoice(r: any): Invoice {
     sentToClient: r.sent_to_client ?? false,
     tvaRate: r.tva_rate != null ? Number(r.tva_rate) : null,
     amountHt: r.amount_ht_mad ?? null,
+    shippingMad: r.shipping_mad ?? null,
   };
 }
 
@@ -128,14 +177,60 @@ export async function listCustomers() {
 
 export async function listPros() {
   const sb = createAdminClient();
-  const { data } = await sb.from("pros").select("*").order("created_at", { ascending: false });
-  return (data ?? []).map(rowToPro);
+  const [{ data }, stats] = await Promise.all([
+    sb.from("pros").select("*").order("created_at", { ascending: false }),
+    loadProStatsMap(sb),
+  ]);
+  return (data ?? []).map((r) => applyProStats(rowToPro(r), stats.get(r.id)));
 }
 
 export async function getProById(id: string) {
   const sb = createAdminClient();
-  const { data } = await sb.from("pros").select("*").eq("id", id).maybeSingle();
-  return data ? rowToPro(data) : null;
+  const [{ data }, stats] = await Promise.all([
+    sb.from("pros").select("*").eq("id", id).maybeSingle(),
+    loadProStatsMap(sb),
+  ]);
+  return data ? applyProStats(rowToPro(data), stats.get(data.id)) : null;
+}
+
+/** Recalcule et enregistre CMDS / CA / encours pour un pro (backfill + synchro). */
+export async function syncProStatsToDb(proId: string) {
+  const sb = createAdminClient();
+  const stats = (await loadProStatsMap(sb)).get(proId) ?? {
+    ordersCount: 0,
+    totalSpent: 0,
+    outstanding: 0,
+  };
+  await sb
+    .from("pros")
+    .update({
+      orders_count: stats.ordersCount,
+      total_spent: stats.totalSpent,
+      outstanding_mad: stats.outstanding,
+    })
+    .eq("id", proId);
+}
+
+/** Recalcule les stats de tous les pros (idempotent). */
+export async function syncAllProsStatsToDb() {
+  const sb = createAdminClient();
+  const [{ data: pros }, stats] = await Promise.all([
+    sb.from("pros").select("id"),
+    loadProStatsMap(sb),
+  ]);
+  await Promise.all(
+    (pros ?? []).map((p) => {
+      const s = stats.get(p.id) ?? { ordersCount: 0, totalSpent: 0, outstanding: 0 };
+      return sb
+        .from("pros")
+        .update({
+          orders_count: s.ordersCount,
+          total_spent: s.totalSpent,
+          outstanding_mad: s.outstanding,
+        })
+        .eq("id", p.id);
+    }),
+  );
 }
 
 // ---------- Orders ----------

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { clerkClient } from "@clerk/nextjs/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { syncProStatsToDb } from "@/lib/queries";
 import { requireRole, requireSession } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 import { notifyAdmins, sendWhatsAppToPhone } from "@/lib/whatsapp-bot";
@@ -15,11 +16,16 @@ async function syncInvoicePaymentFromOrder(
   orderReference: string,
   payment: PaymentStatus,
 ) {
-  const { data: ord } = await sb.from("orders").select("id").eq("reference", orderReference).maybeSingle();
+  const { data: ord } = await sb
+    .from("orders")
+    .select("id, pro_id")
+    .eq("reference", orderReference)
+    .maybeSingle();
   if (!ord?.id) return;
 
   if (payment === "paid") {
     await sb.from("invoices").update({ status: "paid" }).eq("order_id", ord.id);
+    if (ord.pro_id) await syncProStatsToDb(ord.pro_id);
     return;
   }
 
@@ -29,6 +35,7 @@ async function syncInvoicePaymentFromOrder(
     const status: InvoiceStatus = inv.due_date < today ? "overdue" : "upcoming";
     await sb.from("invoices").update({ status }).eq("id", inv.id);
   }
+  if (ord.pro_id) await syncProStatsToDb(ord.pro_id);
 }
 
 async function syncOrderPaymentFromInvoice(
@@ -38,13 +45,14 @@ async function syncOrderPaymentFromInvoice(
 ) {
   const { data: inv } = await sb
     .from("invoices")
-    .select("order_id")
+    .select("order_id, pro_id")
     .eq("reference", invoiceReference)
     .maybeSingle();
   if (!inv?.order_id) return;
 
   const payment: PaymentStatus = invoiceStatus === "paid" ? "paid" : "pending";
   await sb.from("orders").update({ payment }).eq("id", inv.order_id);
+  if (inv.pro_id) await syncProStatsToDb(inv.pro_id);
 }
 
 // ---------- Schemas ----------
@@ -223,6 +231,12 @@ export async function placeOrder(input: z.input<typeof newOrderSchema>) {
     .join("\n");
   await notifyAdmins(orderMessage);
 
+  if (isPro) {
+    await syncProStatsToDb(linked.id);
+    revalidatePath("/admin/pros");
+    revalidatePath("/pro/dashboard");
+  }
+
   return { reference, total };
 }
 
@@ -281,6 +295,7 @@ export async function markInvoicePaid(reference: string) {
   revalidatePath("/admin/orders");
   revalidatePath("/pro/invoices");
   revalidatePath("/pro/dashboard");
+  revalidatePath("/admin/pros");
 }
 
 export async function updateInvoiceStatus(reference: string, status: InvoiceStatus) {
@@ -293,15 +308,20 @@ export async function updateInvoiceStatus(reference: string, status: InvoiceStat
   revalidatePath("/admin/orders");
   revalidatePath("/pro/invoices");
   revalidatePath("/pro/dashboard");
+  revalidatePath("/admin/pros");
 }
 
 export async function applyInvoiceTva(reference: string, tvaRate: number) {
   await requireRole(["admin"]);
   if (tvaRate < 0 || tvaRate > 100) throw new Error("Taux de TVA invalide (0–100).");
   const sb = createAdminClient();
-  const { data: inv } = await sb.from("invoices").select("amount_mad").eq("reference", reference).maybeSingle();
+  const { data: inv } = await sb.from("invoices").select("amount_mad, shipping_mad").eq("reference", reference).maybeSingle();
   if (!inv) throw new Error("Facture introuvable.");
-  const amountHt = Math.round(inv.amount_mad / (1 + tvaRate / 100));
+  
+  // TVA is only applied on the products amount, not shipping.
+  const productsAmount = inv.amount_mad - (inv.shipping_mad || 0);
+  const amountHt = Math.round(productsAmount / (1 + tvaRate / 100));
+  
   const { error } = await sb
     .from("invoices")
     .update({ tva_rate: tvaRate, amount_ht_mad: amountHt })
@@ -311,13 +331,44 @@ export async function applyInvoiceTva(reference: string, tvaRate: number) {
   revalidatePath(`/admin/invoices/${reference}/print`);
 }
 
+export async function applyInvoiceShipping(reference: string, shippingAmount: number) {
+  await requireRole(["admin"]);
+  if (shippingAmount < 0) throw new Error("Montant invalide.");
+  const sb = createAdminClient();
+  const { data: inv } = await sb.from("invoices").select("amount_mad, shipping_mad, tva_rate").eq("reference", reference).maybeSingle();
+  if (!inv) throw new Error("Facture introuvable.");
+  
+  const oldShipping = inv.shipping_mad || 0;
+  const newAmountMad = inv.amount_mad - oldShipping + shippingAmount;
+  
+  const { error } = await sb
+    .from("invoices")
+    .update({ shipping_mad: shippingAmount, amount_mad: newAmountMad })
+    .eq("reference", reference);
+  if (error) throw error;
+  
+  // Recalculate outstanding for pro stats
+  const { data: updatedInv } = await sb.from("invoices").select("pro_id").eq("reference", reference).maybeSingle();
+  if (updatedInv?.pro_id) await syncProStatsToDb(updatedInv.pro_id);
+  
+  revalidatePath("/admin/invoices");
+  revalidatePath(`/admin/invoices/${reference}/print`);
+}
+
 export async function deleteInvoice(reference: string) {
   await requireRole(["admin"]);
   const sb = createAdminClient();
+  const { data: inv } = await sb
+    .from("invoices")
+    .select("pro_id")
+    .eq("reference", reference)
+    .maybeSingle();
   const { error } = await sb.from("invoices").delete().eq("reference", reference);
   if (error) throw error;
+  if (inv?.pro_id) await syncProStatsToDb(inv.pro_id);
   revalidatePath("/admin/invoices");
   revalidatePath("/pro/invoices");
+  revalidatePath("/admin/pros");
 }
 
 /** Envoie la facture au client pro (espace pro + WhatsApp). */
@@ -372,6 +423,50 @@ export async function sendInvoiceToClient(reference: string) {
     : `Facture publiée dans l'espace pro. ${whatsappNote}`;
 
   return { success: true, message, whatsappSent };
+}
+
+/** Envoie un rappel de paiement au client pro (WhatsApp). */
+export async function sendPaymentReminder(reference: string) {
+  await requireRole(["admin"]);
+  const sb = createAdminClient();
+  const { data: inv } = await sb
+    .from("invoices")
+    .select("*, pros(company, phone, contact_name)")
+    .eq("reference", reference)
+    .maybeSingle();
+  if (!inv) throw new Error("Facture introuvable.");
+  if (!inv.pro_id) throw new Error("Cette facture n'est pas liée à un client pro.");
+
+  const company = inv.pros?.company ?? "Client";
+  const phone = inv.pros?.phone?.trim() || null;
+
+  if (!phone) {
+    throw new Error("Aucun numéro WhatsApp sur la fiche pro.");
+  }
+  if (!process.env.NEXT_PUBLIC_WHATSAPP_BOT_URL || !process.env.SITE_API_SECRET) {
+    throw new Error("Bot WhatsApp non configuré.");
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+  const msg = [
+    "🍪 *NYC Cookies Casablanca - Rappel*",
+    "",
+    `Bonjour ${company},`,
+    "",
+    `Sauf erreur de notre part, la facture *${reference}* d'un montant de *${inv.amount_mad} MAD* est toujours en attente de paiement.`,
+    "",
+    `Merci de bien vouloir régulariser la situation.`,
+    "",
+    `Consultez la facture et les détails ici :`,
+    `👉 ${siteUrl}/pro/invoices`,
+  ].join("\n");
+
+  const whatsappSent = await sendWhatsAppToPhone(phone, msg);
+  if (!whatsappSent) {
+    throw new Error("Échec de l'envoi WhatsApp.");
+  }
+
+  return { success: true, message: `Rappel envoyé à ${company}.` };
 }
 
 // ---------- Invitations (admin) ----------

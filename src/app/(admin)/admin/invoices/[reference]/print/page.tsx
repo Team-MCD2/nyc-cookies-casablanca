@@ -24,10 +24,12 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
 
   const tvaRate = invoice.tvaRate ?? (clientIce ? 20 : null);
   const hasTva = tvaRate != null && tvaRate > 0;
+  const shippingFee = invoice.shippingMad ?? 0;
   const totalTtc = invoice.amount;
+  const totalTtcProducts = totalTtc - shippingFee;
   const totalHt =
-    invoice.amountHt ?? (hasTva ? Math.round(totalTtc / (1 + (tvaRate as number) / 100)) : totalTtc);
-  const tvaAmount = totalTtc - totalHt;
+    invoice.amountHt ?? (hasTva ? Math.round(totalTtcProducts / (1 + (tvaRate as number) / 100)) : totalTtcProducts);
+  const tvaAmount = totalTtcProducts - totalHt;
 
   // Resolve product names and prices for order items
   const products = await listProducts();
@@ -152,7 +154,7 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
         </div>
 
         {/* Totals Table */}
-        <div className="flex justify-end mb-12">
+        <div className="flex justify-end mb-6">
           <table className="w-72 border-collapse text-sm text-gray-700">
             <tbody>
               {hasTva ? (
@@ -165,34 +167,52 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
                     <td className="p-2.5 text-gray-400 font-bold uppercase text-xs text-right">TVA ({tvaRate}%)</td>
                     <td className="p-2.5 font-mono text-right text-gray-800 font-medium">{money(tvaAmount)}</td>
                   </tr>
+                  {shippingFee > 0 && (
+                    <tr className="border-b border-gray-100">
+                      <td className="p-2.5 text-gray-400 font-bold uppercase text-xs text-right">EXPÉDITION</td>
+                      <td className="p-2.5 font-mono text-right text-gray-800 font-medium">{money(shippingFee)}</td>
+                    </tr>
+                  )}
                   <tr className="bg-[#c0b09c]/10">
                     <td className="p-3 text-[#3c362f] font-serif font-bold text-sm text-right">TOTAL TTC</td>
                     <td className="p-3 font-mono text-right font-bold text-[#3c362f] text-base">{money(totalTtc)}</td>
                   </tr>
                 </>
               ) : (
-                <tr className="bg-[#c0b09c]/10">
-                  <td className="p-4 text-[#3c362f] font-serif font-bold text-sm text-right uppercase tracking-wider">TOTAL NET</td>
-                  <td className="p-4 font-mono text-right font-bold text-[#3c362f] text-lg">{money(totalTtc)}</td>
-                </tr>
+                <>
+                  <tr className="border-b border-gray-100">
+                    <td className="p-2.5 text-gray-400 font-bold uppercase text-xs text-right">SSTOTAL NET</td>
+                    <td className="p-2.5 font-mono text-right text-gray-800 font-medium">{money(totalTtcProducts)}</td>
+                  </tr>
+                  {shippingFee > 0 && (
+                    <tr className="border-b border-gray-100">
+                      <td className="p-2.5 text-gray-400 font-bold uppercase text-xs text-right">EXPÉDITION</td>
+                      <td className="p-2.5 font-mono text-right text-gray-800 font-medium">{money(shippingFee)}</td>
+                    </tr>
+                  )}
+                  <tr className="bg-[#c0b09c]/10">
+                    <td className="p-4 text-[#3c362f] font-serif font-bold text-sm text-right uppercase tracking-wider">TOTAL NET</td>
+                    <td className="p-4 font-mono text-right font-bold text-[#3c362f] text-lg">{money(totalTtc)}</td>
+                  </tr>
+                </>
               )}
             </tbody>
           </table>
         </div>
 
         {/* Separator line before bank details */}
-        <div className="border-b border-gray-100 my-6" />
+        <div className="border-b border-gray-100 my-4" />
 
-        {/* Bank & Payment Info */}
-        <footer className="text-xs text-gray-500 leading-relaxed grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-          <div>
+        {/* Bank & Payment Info + Signature Stamp */}
+        <footer className="text-xs text-gray-500 leading-relaxed grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+          <div className="md:col-span-1">
             <h4 className="font-serif font-bold text-gray-800 mb-2 uppercase tracking-wide">
               CONDITIONS DE RÈGLEMENT
             </h4>
             <p>Le règlement s'effectue par espèces à la livraison ou par virement bancaire sous les conditions convenues.</p>
             <p className="mt-2 text-gray-400">NYC Cookies Casablanca — ICE: 003386290000042</p>
           </div>
-          <div>
+          <div className="md:col-span-1">
             <h4 className="font-serif font-bold text-gray-800 mb-2 uppercase tracking-wide">
               INFORMATIONS BANCAIRES
             </h4>
@@ -201,6 +221,16 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ r
               <p><span className="text-gray-400">Banque:</span> Attijariwafa Bank</p>
               <p className="text-xs break-all"><span className="text-gray-400">IBAN:</span> 007 780 0003559000000519 14</p>
             </div>
+          </div>
+          <div className="md:col-span-1 flex justify-end items-end">
+            <Image
+              src="/tamon.png"
+              alt="Cachet NYC Cookies"
+              width={160}
+              height={160}
+              className="opacity-90 mix-blend-multiply"
+              style={{ objectFit: 'contain' }}
+            />
           </div>
         </footer>
       </div>
