@@ -219,7 +219,7 @@
   /* Public header glass */
   .public-header {
     @apply sticky top-0 z-50 border-b border-border;
-    background: rgba(10, 10, 10, 0.45);
+    background: rgba(10, 10, 10, 0.15);
     backdrop-filter: blur(14px);
   }
 
