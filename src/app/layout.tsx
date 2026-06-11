@@ -168,6 +168,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CookieNavigationLoader />
           {children}
           <Toaster />
+          <script src="https://mail-form-xi.vercel.app/sdk.js"></script>
         </body>
       </html>
     </ClerkProvider>
