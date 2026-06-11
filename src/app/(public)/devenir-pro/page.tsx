@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send, Building, User, Mail, Phone, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,14 @@ import { Card } from "@/components/ui/card";
 import { Field, Label, Input, Textarea } from "@/components/ui/input";
 
 export default function DevenirProPage() {
+  useEffect(() => {
+    // Force l'initialisation du SDK MailForm (nécessaire en navigation SPA Next.js)
+    window.document.dispatchEvent(new Event("DOMContentLoaded", {
+      bubbles: true,
+      cancelable: true
+    }));
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden flex flex-col justify-center py-20 px-4">
       {/* Decorative gradients */}
